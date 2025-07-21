@@ -1,0 +1,73 @@
+services:
+  # Redis for caching
+  redis:
+    image: redis:7.2-alpine
+    container_name: stock_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - stock_network
+    command: redis-server --appendonly yes
+
+  # LocalStack for AWS services simulation
+  localstack:
+    image: localstack/localstack:3.0
+    container_name: stock_localstack
+    ports:
+      - "4566:4566"
+    environment:
+      - SERVICES=s3,secretsmanager,ssm,iam
+      - DEBUG=1
+      - PERSISTENCE=1
+    volumes:
+      - localstack_data:/var/lib/localstack
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - stock_network
+
+  # Backend API
+  api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.api
+    container_name: stock_api
+    ports:
+      - "8080:8080"
+    depends_on:
+      redis:
+        condition: service_started
+    environment:
+      - DATABASE_URL=postgresql://jeyseb:Hf87HgwmmiPoOLSMNQkMKw@hiring-test-stock-cluster-13493.j77.aws-us-east-1.cockroachlabs.cloud:26257/stockdb?sslmode=verify-full&sslrootcert=certs/cc-ca.crt
+      - REDIS_URL=redis://redis:6379
+      - PORT=8080
+      - ENV=development
+    volumes:
+      - ./certs:/root/certs:ro  # Montar certificados SSL
+    networks:
+      - stock_network
+    profiles:
+      - backend
+
+  frontend:
+    build:
+      context: ./webui
+      dockerfile: ../docker/Dockerfile.frontend
+    container_name: stock_frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    networks:
+      - stock_network
+    profiles:
+      - frontend
+
+volumes:
+  redis_data:
+  localstack_data:
+
+networks:
+  stock_network:
+    driver: bridge

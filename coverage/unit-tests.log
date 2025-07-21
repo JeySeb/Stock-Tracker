@@ -1,0 +1,180 @@
+=== RUN   TestStockAPIClient_FetchPage_Success
+--- PASS: TestStockAPIClient_FetchPage_Success (0.01s)
+=== RUN   TestStockAPIClient_FetchPage_WithNextPage
+--- PASS: TestStockAPIClient_FetchPage_WithNextPage (0.00s)
+=== RUN   TestStockAPIClient_FetchPage_HTTPError
+--- PASS: TestStockAPIClient_FetchPage_HTTPError (7.01s)
+=== RUN   TestStockAPIClient_FetchPage_InvalidJSON
+--- PASS: TestStockAPIClient_FetchPage_InvalidJSON (0.00s)
+=== RUN   TestStockAPIClient_FetchAllStocks_Success
+--- PASS: TestStockAPIClient_FetchAllStocks_Success (1.00s)
+=== RUN   TestStockAPIClient_FetchAllStocks_ContextCancellation
+--- PASS: TestStockAPIClient_FetchAllStocks_ContextCancellation (0.10s)
+=== RUN   TestStockAPIClient_ConvertAPIItemToStock_InvalidTime
+--- PASS: TestStockAPIClient_ConvertAPIItemToStock_InvalidTime (0.00s)
+=== RUN   TestStockAPIClient_ParsePrice
+=== RUN   TestStockAPIClient_ParsePrice/Simple_price
+=== RUN   TestStockAPIClient_ParsePrice/Price_with_dollar_sign
+=== RUN   TestStockAPIClient_ParsePrice/Price_with_commas
+=== RUN   TestStockAPIClient_ParsePrice/Price_with_spaces
+=== RUN   TestStockAPIClient_ParsePrice/Empty_string
+=== RUN   TestStockAPIClient_ParsePrice/Invalid_format
+--- PASS: TestStockAPIClient_ParsePrice (0.01s)
+    --- PASS: TestStockAPIClient_ParsePrice/Simple_price (0.00s)
+    --- PASS: TestStockAPIClient_ParsePrice/Price_with_dollar_sign (0.00s)
+    --- PASS: TestStockAPIClient_ParsePrice/Price_with_commas (0.00s)
+    --- PASS: TestStockAPIClient_ParsePrice/Price_with_spaces (0.00s)
+    --- PASS: TestStockAPIClient_ParsePrice/Empty_string (0.00s)
+    --- PASS: TestStockAPIClient_ParsePrice/Invalid_format (0.00s)
+=== RUN   TestStockAPIClient_RateLimit
+--- PASS: TestStockAPIClient_RateLimit (1.00s)
+PASS
+coverage: [no statements]
+ok  	stock-tracker/tests/unit/clients	10.168s	coverage: [no statements]
+=== RUN   TestNewStock
+--- PASS: TestNewStock (0.00s)
+=== RUN   TestStock_IsUpgrade
+=== RUN   TestStock_IsUpgrade/Upgraded_action
+=== RUN   TestStock_IsUpgrade/Raised_action
+=== RUN   TestStock_IsUpgrade/Initiated_action
+=== RUN   TestStock_IsUpgrade/Downgraded_action
+=== RUN   TestStock_IsUpgrade/Lowered_action
+=== RUN   TestStock_IsUpgrade/Reiterated_action
+=== RUN   TestStock_IsUpgrade/Case_insensitive_test
+--- PASS: TestStock_IsUpgrade (0.00s)
+    --- PASS: TestStock_IsUpgrade/Upgraded_action (0.00s)
+    --- PASS: TestStock_IsUpgrade/Raised_action (0.00s)
+    --- PASS: TestStock_IsUpgrade/Initiated_action (0.00s)
+    --- PASS: TestStock_IsUpgrade/Downgraded_action (0.00s)
+    --- PASS: TestStock_IsUpgrade/Lowered_action (0.00s)
+    --- PASS: TestStock_IsUpgrade/Reiterated_action (0.00s)
+    --- PASS: TestStock_IsUpgrade/Case_insensitive_test (0.00s)
+=== RUN   TestStock_GetPriceTargetChange
+=== RUN   TestStock_GetPriceTargetChange/Positive_change
+=== RUN   TestStock_GetPriceTargetChange/Negative_change
+=== RUN   TestStock_GetPriceTargetChange/No_change
+=== RUN   TestStock_GetPriceTargetChange/Zero_target_from
+=== RUN   TestStock_GetPriceTargetChange/Zero_target_to
+=== RUN   TestStock_GetPriceTargetChange/Both_zero
+--- PASS: TestStock_GetPriceTargetChange (0.00s)
+    --- PASS: TestStock_GetPriceTargetChange/Positive_change (0.00s)
+    --- PASS: TestStock_GetPriceTargetChange/Negative_change (0.00s)
+    --- PASS: TestStock_GetPriceTargetChange/No_change (0.00s)
+    --- PASS: TestStock_GetPriceTargetChange/Zero_target_from (0.00s)
+    --- PASS: TestStock_GetPriceTargetChange/Zero_target_to (0.00s)
+    --- PASS: TestStock_GetPriceTargetChange/Both_zero (0.00s)
+=== RUN   TestStock_GetRatingScore
+=== RUN   TestStock_GetRatingScore/Strong_Buy_to_Buy
+=== RUN   TestStock_GetRatingScore/Hold_to_Outperform
+=== RUN   TestStock_GetRatingScore/Sell_to_Neutral
+=== RUN   TestStock_GetRatingScore/Case_insensitive
+=== RUN   TestStock_GetRatingScore/Unknown_rating
+--- PASS: TestStock_GetRatingScore (0.00s)
+    --- PASS: TestStock_GetRatingScore/Strong_Buy_to_Buy (0.00s)
+    --- PASS: TestStock_GetRatingScore/Hold_to_Outperform (0.00s)
+    --- PASS: TestStock_GetRatingScore/Sell_to_Neutral (0.00s)
+    --- PASS: TestStock_GetRatingScore/Case_insensitive (0.00s)
+    --- PASS: TestStock_GetRatingScore/Unknown_rating (0.00s)
+=== RUN   TestStock_GetRatingChangeScore
+=== RUN   TestStock_GetRatingChangeScore/Upgrade_from_Hold_to_Buy
+=== RUN   TestStock_GetRatingChangeScore/Downgrade_from_Buy_to_Hold
+=== RUN   TestStock_GetRatingChangeScore/No_change
+--- PASS: TestStock_GetRatingChangeScore (0.00s)
+    --- PASS: TestStock_GetRatingChangeScore/Upgrade_from_Hold_to_Buy (0.00s)
+    --- PASS: TestStock_GetRatingChangeScore/Downgrade_from_Buy_to_Hold (0.00s)
+    --- PASS: TestStock_GetRatingChangeScore/No_change (0.00s)
+=== RUN   TestStock_IsRecommendation
+=== RUN   TestStock_IsRecommendation/Positive_action_-_upgraded
+=== RUN   TestStock_IsRecommendation/Positive_action_-_initiated
+=== RUN   TestStock_IsRecommendation/Positive_action_-_reiterated
+=== RUN   TestStock_IsRecommendation/Rating_improvement
+=== RUN   TestStock_IsRecommendation/Negative_action_and_rating
+=== RUN   TestStock_IsRecommendation/No_positive_indicators
+--- PASS: TestStock_IsRecommendation (0.00s)
+    --- PASS: TestStock_IsRecommendation/Positive_action_-_upgraded (0.00s)
+    --- PASS: TestStock_IsRecommendation/Positive_action_-_initiated (0.00s)
+    --- PASS: TestStock_IsRecommendation/Positive_action_-_reiterated (0.00s)
+    --- PASS: TestStock_IsRecommendation/Rating_improvement (0.00s)
+    --- PASS: TestStock_IsRecommendation/Negative_action_and_rating (0.00s)
+    --- PASS: TestStock_IsRecommendation/No_positive_indicators (0.00s)
+=== RUN   TestStock_GetPriceChange
+=== RUN   TestStock_GetPriceChange/With_price_close
+=== RUN   TestStock_GetPriceChange/No_price_close
+--- PASS: TestStock_GetPriceChange (0.00s)
+    --- PASS: TestStock_GetPriceChange/With_price_close (0.00s)
+    --- PASS: TestStock_GetPriceChange/No_price_close (0.00s)
+=== RUN   TestStock_Validate
+--- PASS: TestStock_Validate (0.00s)
+PASS
+coverage: [no statements]
+ok  	stock-tracker/tests/unit/entities	1.035s	coverage: [no statements]
+=== RUN   TestStockHandler_GetStocks_Success
+--- PASS: TestStockHandler_GetStocks_Success (0.00s)
+=== RUN   TestStockHandler_GetStocks_WithFilters
+--- PASS: TestStockHandler_GetStocks_WithFilters (0.00s)
+=== RUN   TestStockHandler_GetStocks_DefaultFilters
+--- PASS: TestStockHandler_GetStocks_DefaultFilters (0.00s)
+=== RUN   TestStockHandler_GetStocks_UseCaseError
+--- PASS: TestStockHandler_GetStocks_UseCaseError (0.00s)
+=== RUN   TestStockHandler_GetStockByTicker_Success
+--- PASS: TestStockHandler_GetStockByTicker_Success (0.00s)
+=== RUN   TestStockHandler_GetStockByTicker_EmptyTicker
+--- PASS: TestStockHandler_GetStockByTicker_EmptyTicker (0.00s)
+=== RUN   TestStockHandler_GetStockByTicker_UseCaseError
+--- PASS: TestStockHandler_GetStockByTicker_UseCaseError (0.00s)
+=== RUN   TestStockHandler_GetStats_Success
+--- PASS: TestStockHandler_GetStats_Success (0.00s)
+=== RUN   TestStockHandler_GetStats_UseCaseError
+--- PASS: TestStockHandler_GetStats_UseCaseError (0.00s)
+=== RUN   TestStockHandler_ParseFilters
+=== RUN   TestStockHandler_ParseFilters/All_parameters
+=== RUN   TestStockHandler_ParseFilters/Invalid_limit_and_offset
+=== RUN   TestStockHandler_ParseFilters/Empty_query
+--- PASS: TestStockHandler_ParseFilters (0.00s)
+    --- PASS: TestStockHandler_ParseFilters/All_parameters (0.00s)
+    --- PASS: TestStockHandler_ParseFilters/Invalid_limit_and_offset (0.00s)
+    --- PASS: TestStockHandler_ParseFilters/Empty_query (0.00s)
+=== RUN   TestStockHandler_NotImplementedMethods
+=== RUN   TestStockHandler_NotImplementedMethods/GetStockByID
+=== RUN   TestStockHandler_NotImplementedMethods/CreateStock
+=== RUN   TestStockHandler_NotImplementedMethods/UpdateStock
+=== RUN   TestStockHandler_NotImplementedMethods/DeleteStock
+--- PASS: TestStockHandler_NotImplementedMethods (0.00s)
+    --- PASS: TestStockHandler_NotImplementedMethods/GetStockByID (0.00s)
+    --- PASS: TestStockHandler_NotImplementedMethods/CreateStock (0.00s)
+    --- PASS: TestStockHandler_NotImplementedMethods/UpdateStock (0.00s)
+    --- PASS: TestStockHandler_NotImplementedMethods/DeleteStock (0.00s)
+=== RUN   TestStockHandler_Integration
+--- PASS: TestStockHandler_Integration (0.00s)
+PASS
+coverage: [no statements]
+ok  	stock-tracker/tests/unit/handlers	1.035s	coverage: [no statements]
+=== RUN   TestStockIngestionUseCaseSuite
+=== RUN   TestStockIngestionUseCaseSuite/TestEnrichWithBrokerInfo_ExistingBroker
+=== RUN   TestStockIngestionUseCaseSuite/TestEnrichWithBrokerInfo_NewBroker
+=== RUN   TestStockIngestionUseCaseSuite/TestGetStats
+=== RUN   TestStockIngestionUseCaseSuite/TestGetStocks
+=== RUN   TestStockIngestionUseCaseSuite/TestGetStocksByTicker
+=== RUN   TestStockIngestionUseCaseSuite/TestIngestStocks_APIClientError
+=== RUN   TestStockIngestionUseCaseSuite/TestIngestStocks_BrokerRepositoryError
+=== RUN   TestStockIngestionUseCaseSuite/TestIngestStocks_ConcurrentProcessing
+=== RUN   TestStockIngestionUseCaseSuite/TestIngestStocks_ContextCancellation
+=== RUN   TestStockIngestionUseCaseSuite/TestIngestStocks_EmptyStocks
+=== RUN   TestStockIngestionUseCaseSuite/TestIngestStocks_StockRepositoryError
+=== RUN   TestStockIngestionUseCaseSuite/TestIngestStocks_Success
+--- PASS: TestStockIngestionUseCaseSuite (0.02s)
+    --- PASS: TestStockIngestionUseCaseSuite/TestEnrichWithBrokerInfo_ExistingBroker (0.00s)
+    --- PASS: TestStockIngestionUseCaseSuite/TestEnrichWithBrokerInfo_NewBroker (0.00s)
+    --- PASS: TestStockIngestionUseCaseSuite/TestGetStats (0.00s)
+    --- PASS: TestStockIngestionUseCaseSuite/TestGetStocks (0.00s)
+    --- PASS: TestStockIngestionUseCaseSuite/TestGetStocksByTicker (0.00s)
+    --- PASS: TestStockIngestionUseCaseSuite/TestIngestStocks_APIClientError (0.00s)
+    --- PASS: TestStockIngestionUseCaseSuite/TestIngestStocks_BrokerRepositoryError (0.00s)
+    --- PASS: TestStockIngestionUseCaseSuite/TestIngestStocks_ConcurrentProcessing (0.00s)
+    --- PASS: TestStockIngestionUseCaseSuite/TestIngestStocks_ContextCancellation (0.00s)
+    --- PASS: TestStockIngestionUseCaseSuite/TestIngestStocks_EmptyStocks (0.00s)
+    --- PASS: TestStockIngestionUseCaseSuite/TestIngestStocks_StockRepositoryError (0.00s)
+    --- PASS: TestStockIngestionUseCaseSuite/TestIngestStocks_Success (0.00s)
+PASS
+coverage: [no statements]
+ok  	stock-tracker/tests/unit/usecases	1.044s	coverage: [no statements]
