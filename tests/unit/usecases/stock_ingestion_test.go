@@ -44,6 +44,7 @@ func (suite *StockIngestionUseCaseSuite) TearDownTest() {
 	suite.stockRepo.AssertExpectations(suite.T())
 	suite.brokerRepo.AssertExpectations(suite.T())
 	suite.apiClient.AssertExpectations(suite.T())
+	suite.logger.AssertExpectations(suite.T())
 }
 
 func TestStockIngestionUseCaseSuite(t *testing.T) {
@@ -75,7 +76,7 @@ func (suite *StockIngestionUseCaseSuite) TestIngestStocks_Success() {
 	}
 
 	// Setup expectations
-	suite.logger.On("Info", mock.AnythingOfType("string"), mock.Anything).Maybe()
+	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 	suite.apiClient.On("FetchAllStocks", ctx).Return(testStocks, nil)
 	suite.brokerRepo.On("GetAll", ctx).Return(existingBrokers, nil)
 	suite.brokerRepo.On("Create", ctx, mock.AnythingOfType("*entities.Broker")).Return(nil)
@@ -94,8 +95,8 @@ func (suite *StockIngestionUseCaseSuite) TestIngestStocks_APIClientError() {
 	expectedError := errors.New("API client error")
 
 	// Setup expectations
-	suite.logger.On("Info", mock.AnythingOfType("string"), mock.Anything).Maybe()
-	suite.logger.On("Error", mock.AnythingOfType("string"), mock.Anything).Maybe()
+	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
+	suite.logger.On("Error", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 	suite.apiClient.On("FetchAllStocks", ctx).Return([]*entities.Stock{}, expectedError)
 
 	// Act
@@ -112,7 +113,7 @@ func (suite *StockIngestionUseCaseSuite) TestIngestStocks_EmptyStocks() {
 	emptyStocks := []*entities.Stock{}
 
 	// Setup expectations
-	suite.logger.On("Info", mock.AnythingOfType("string"), mock.Anything).Maybe()
+	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 	suite.apiClient.On("FetchAllStocks", ctx).Return(emptyStocks, nil)
 
 	// Act
@@ -137,8 +138,8 @@ func (suite *StockIngestionUseCaseSuite) TestIngestStocks_BrokerRepositoryError(
 	expectedError := errors.New("broker repository error")
 
 	// Setup expectations
-	suite.logger.On("Info", mock.AnythingOfType("string"), mock.Anything).Maybe()
-	suite.logger.On("Error", mock.AnythingOfType("string"), mock.Anything).Maybe()
+	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
+	suite.logger.On("Error", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 	suite.apiClient.On("FetchAllStocks", ctx).Return(testStocks, nil)
 	suite.brokerRepo.On("GetAll", ctx).Return([]*entities.Broker{}, expectedError)
 
@@ -168,8 +169,8 @@ func (suite *StockIngestionUseCaseSuite) TestIngestStocks_StockRepositoryError()
 	expectedError := errors.New("stock repository error")
 
 	// Setup expectations
-	suite.logger.On("Info", mock.AnythingOfType("string"), mock.Anything).Maybe()
-	suite.logger.On("Error", mock.AnythingOfType("string"), mock.Anything).Maybe()
+	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
+	suite.logger.On("Error", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 	suite.apiClient.On("FetchAllStocks", ctx).Return(testStocks, nil)
 	suite.brokerRepo.On("GetAll", ctx).Return(existingBrokers, nil)
 	suite.stockRepo.On("BulkCreate", mock.Anything, mock.AnythingOfType("[]*entities.Stock")).Return(expectedError)
@@ -197,7 +198,7 @@ func (suite *StockIngestionUseCaseSuite) TestEnrichWithBrokerInfo_NewBroker() {
 	existingBrokers := []*entities.Broker{}
 
 	// Setup expectations - test through IngestStocks which calls the private method
-	suite.logger.On("Info", mock.AnythingOfType("string"), mock.Anything).Maybe()
+	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 	suite.apiClient.On("FetchAllStocks", ctx).Return(testStocks, nil)
 	suite.brokerRepo.On("GetAll", ctx).Return(existingBrokers, nil)
 	suite.brokerRepo.On("Create", ctx, mock.MatchedBy(func(broker *entities.Broker) bool {
@@ -228,7 +229,7 @@ func (suite *StockIngestionUseCaseSuite) TestEnrichWithBrokerInfo_ExistingBroker
 	existingBrokers := []*entities.Broker{existingBroker}
 
 	// Setup expectations - test through IngestStocks which calls the private method
-	suite.logger.On("Info", mock.AnythingOfType("string"), mock.Anything).Maybe()
+	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 	suite.apiClient.On("FetchAllStocks", ctx).Return(testStocks, nil)
 	suite.brokerRepo.On("GetAll", ctx).Return(existingBrokers, nil)
 	suite.stockRepo.On("BulkCreate", mock.Anything, mock.AnythingOfType("[]*entities.Stock")).Return(nil)
@@ -243,6 +244,10 @@ func (suite *StockIngestionUseCaseSuite) TestEnrichWithBrokerInfo_ExistingBroker
 func (suite *StockIngestionUseCaseSuite) TestGetStats() {
 	// Arrange
 	ctx := context.Background()
+
+	// Setup expectations
+	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
+	suite.stockRepo.On("GetAll", ctx, mock.AnythingOfType("valueObjects.StockFilters")).Return([]*entities.Stock{}, &valueObjects.Pagination{TotalItems: 5}, nil)
 
 	// Act
 	stats, err := suite.useCase.GetStats(ctx)
@@ -266,6 +271,10 @@ func (suite *StockIngestionUseCaseSuite) TestGetStocks() {
 		Limit:  10,
 	}
 
+	// Setup expectations
+	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
+	suite.stockRepo.On("GetAll", ctx, filters).Return([]*entities.Stock{}, &valueObjects.Pagination{TotalItems: 0}, nil)
+
 	// Act
 	stocks, pagination, err := suite.useCase.GetStocks(ctx, filters)
 
@@ -279,6 +288,10 @@ func (suite *StockIngestionUseCaseSuite) TestGetStocksByTicker() {
 	// Arrange
 	ctx := context.Background()
 	ticker := "AAPL"
+
+	// Setup expectations
+	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
+	suite.stockRepo.On("GetByTicker", ctx, ticker).Return([]*entities.Stock{}, nil)
 
 	// Act
 	stocks, err := suite.useCase.GetStocksByTicker(ctx, ticker)
@@ -311,7 +324,7 @@ func (suite *StockIngestionUseCaseSuite) TestIngestStocks_ConcurrentProcessing()
 	}
 
 	// Setup expectations
-	suite.logger.On("Info", mock.AnythingOfType("string"), mock.Anything).Maybe()
+	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 	suite.apiClient.On("FetchAllStocks", ctx).Return(testStocks, nil)
 	suite.brokerRepo.On("GetAll", ctx).Return(existingBrokers, nil)
 
@@ -329,20 +342,16 @@ func (suite *StockIngestionUseCaseSuite) TestIngestStocks_ConcurrentProcessing()
 func (suite *StockIngestionUseCaseSuite) TestIngestStocks_ContextCancellation() {
 	// Arrange
 	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // Cancel immediately
 
 	// Setup expectations with context that gets cancelled
 	suite.apiClient.On("FetchAllStocks", mock.MatchedBy(func(ctx context.Context) bool {
-		select {
-		case <-ctx.Done():
-			return true
-		default:
-			cancel() // Cancel the context during API call
-			return true
-		}
+		// Check if context is cancelled
+		return ctx.Err() != nil
 	})).Return([]*entities.Stock{}, context.Canceled)
 
-	suite.logger.On("Info", mock.AnythingOfType("string"), mock.Anything).Maybe()
-	suite.logger.On("Error", mock.AnythingOfType("string"), mock.Anything).Maybe()
+	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
+	suite.logger.On("Error", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 
 	// Act
 	err := suite.useCase.IngestStocks(ctx)

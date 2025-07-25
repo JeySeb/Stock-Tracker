@@ -1,0 +1,74 @@
+package mocks
+
+import (
+	"context"
+	"time"
+
+	"stock-tracker/internal/domain/entities"
+
+	"github.com/stretchr/testify/mock"
+)
+
+// MockJWTService implements services.JWTService for testing
+type MockJWTService struct {
+	mock.Mock
+}
+
+func (m *MockJWTService) GenerateTokenPair(user *entities.User) (*entities.TokenPair, error) {
+	args := m.Called(user)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.TokenPair), args.Error(1)
+}
+
+func (m *MockJWTService) ValidateAccessToken(token string) (*entities.JWTClaims, error) {
+	args := m.Called(token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.JWTClaims), args.Error(1)
+}
+
+func (m *MockJWTService) ValidateRefreshToken(token string) (*entities.JWTClaims, error) {
+	args := m.Called(token)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*entities.JWTClaims), args.Error(1)
+}
+
+// MockPasswordService implements services.PasswordService for testing
+type MockPasswordService struct {
+	mock.Mock
+}
+
+func (m *MockPasswordService) HashPassword(password string) (string, error) {
+	args := m.Called(password)
+	return args.String(0), args.Error(1)
+}
+
+func (m *MockPasswordService) ComparePasswords(hashedPassword, plainPassword string) error {
+	args := m.Called(hashedPassword, plainPassword)
+	return args.Error(0)
+}
+
+// MockEmailService implements services.EmailService for testing
+type MockEmailService struct {
+	mock.Mock
+}
+
+func (m *MockEmailService) SendVerificationEmail(ctx context.Context, user *entities.User, verificationLink string) error {
+	args := m.Called(ctx, user, verificationLink)
+	return args.Error(0)
+}
+
+func (m *MockEmailService) SendPasswordResetEmail(ctx context.Context, user *entities.User, resetLink string) error {
+	args := m.Called(ctx, user, resetLink)
+	return args.Error(0)
+}
+
+func (m *MockEmailService) SendSubscriptionExpiringEmail(ctx context.Context, user *entities.User, expiryDate time.Time) error {
+	args := m.Called(ctx, user, expiryDate)
+	return args.Error(0)
+}

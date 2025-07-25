@@ -147,7 +147,7 @@ func TestStockHandler_GetStocks_UseCaseError(t *testing.T) {
 	mockUseCase.On("GetStocks", mock.Anything, mock.AnythingOfType("valueObjects.StockFilters")).
 		Return(nil, (*valueObjects.Pagination)(nil), expectedError)
 
-	mockLogger.On("Error", "Failed to get stocks", mock.Anything).Return()
+	mockLogger.On("Error", "Failed to get stocks", "error", mock.Anything).Return()
 
 	req := httptest.NewRequest("GET", "/stocks", nil)
 	w := httptest.NewRecorder()
@@ -239,7 +239,7 @@ func TestStockHandler_GetStockByTicker_UseCaseError(t *testing.T) {
 	mockUseCase.On("GetStocksByTicker", mock.Anything, "INVALID").
 		Return(nil, expectedError)
 
-	mockLogger.On("Error", "Failed to get stocks by ticker", mock.Anything).Return()
+	mockLogger.On("Error", "Failed to get stocks by ticker", "ticker", "INVALID", "error", mock.Anything).Return()
 
 	// Create router to test URL parameters
 	r := chi.NewRouter()
@@ -312,7 +312,7 @@ func TestStockHandler_GetStats_UseCaseError(t *testing.T) {
 	mockUseCase.On("GetStats", mock.Anything).
 		Return(nil, expectedError)
 
-	mockLogger.On("Error", "Failed to get stats", mock.Anything).Return()
+	mockLogger.On("Error", "Failed to get stats", "error", mock.Anything).Return()
 
 	req := httptest.NewRequest("GET", "/stats", nil)
 	w := httptest.NewRecorder()

@@ -13,10 +13,11 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
 
-	"stock-tracker/internal/domain/repositories"
 	"stock-tracker/internal/domain/usecases"
+	"stock-tracker/internal/infrastructure/auth"
 	"stock-tracker/internal/infrastructure/config"
 	"stock-tracker/internal/infrastructure/database"
+	infraMiddleware "stock-tracker/internal/infrastructure/middleware"
 	"stock-tracker/internal/presentation/handlers"
 	"stock-tracker/pkg/logger"
 )
@@ -47,16 +48,34 @@ func main() {
 
 	// Initialize repositories
 	stockRepo := database.NewStockRepository(dbPool.GetPool(), log)
-	brokerRepo := repositories.NewBrokerRepository(dbPool.GetPool())
+	brokerRepo := database.NewBrokerRepository(dbPool.GetPool())
+	userRepo := database.NewUserRepository(dbPool.GetPool(), log)
+	sessionRepo := database.NewSessionRepository(dbPool.GetPool())
+	subscriptionRepo := database.NewSubscriptionRepository(dbPool.GetPool(), log)
 
-	// Initialize use cases (API only needs querying, not ingestion)
+	// Initialize JWT service
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		jwtSecret = "your-super-secret-jwt-key-change-in-production"
+		log.Warn("Using default JWT secret - change in production!")
+	}
+	jwtService := auth.NewJWTService(jwtSecret)
+
+	// Initialize use cases
 	stockQueryUC := usecases.NewStockQueryUseCase(stockRepo, brokerRepo, log)
+	userUC := usecases.NewUserUseCase(userRepo, subscriptionRepo, sessionRepo, jwtService, log)
+	// subscriptionUC := usecases.NewSubscriptionUseCase(subscriptionRepo, userRepo, log) // TODO: Use when subscription handler is implemented
+
+	// Initialize middleware
+	authMiddleware := infraMiddleware.NewAuthMiddleware(jwtService, log)
+	rateLimiter := infraMiddleware.NewRateLimiter(log)
 
 	// Initialize handlers
 	stockHandler := handlers.NewStockHandler(stockQueryUC, log)
+	authHandler := handlers.NewAuthHandler(userUC, log)
 
 	// Initialize router
-	r := setupRouter(stockHandler, log, dbPool)
+	r := setupRouter(stockHandler, authHandler, authMiddleware, rateLimiter, log, dbPool)
 
 	// Configure server
 	server := &http.Server{
@@ -112,18 +131,22 @@ func corsMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-func setupRouter(stockHandler *handlers.StockHandler, log logger.Logger, dbPool *database.Connection) *chi.Mux {
-
+func setupRouter(
+	stockHandler *handlers.StockHandler,
+	authHandler *handlers.AuthHandler,
+	authMiddleware *infraMiddleware.AuthMiddleware,
+	rateLimiter *infraMiddleware.RateLimiter,
+	log logger.Logger,
+	dbPool *database.Connection,
+) *chi.Mux {
 	r := chi.NewRouter()
 
-	//Midleware
+	// Global middleware
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Timeout(60 * time.Second))
-
-	// CORS
 	r.Use(corsMiddleware)
 
 	// Health check
@@ -146,16 +169,54 @@ func setupRouter(stockHandler *handlers.StockHandler, log logger.Logger, dbPool 
 	// API routes
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/v1", func(r chi.Router) {
+			// Public authentication routes
+			r.Route("/auth", func(r chi.Router) {
+				r.Use(rateLimiter.RateLimit) // Rate limiting for auth
+				r.Post("/register", authHandler.Register)
+				r.Post("/login", authHandler.Login)
+				r.Post("/refresh", authHandler.RefreshToken)
+			})
+
+			// Stock routes with optional authentication
 			r.Route("/stocks", func(r chi.Router) {
+				r.Use(authMiddleware.OptionalAuth) // Guest users can access with limitations
+				r.Use(rateLimiter.RateLimit)       // Tier-based rate limiting
 				r.Get("/", stockHandler.GetStocks)
 				r.Get("/{id}", stockHandler.GetStockByID)
 				r.Get("/{ticker}", stockHandler.GetStockByTicker)
 				r.Get("/stats", stockHandler.GetStats)
-				r.Post("/", stockHandler.CreateStock)
-				r.Put("/{id}", stockHandler.UpdateStock)
-				r.Delete("/{id}", stockHandler.DeleteStock)
+
+				// Protected routes for authenticated users
+				r.Group(func(r chi.Router) {
+					r.Use(authMiddleware.RequireAuth)
+					r.Post("/", stockHandler.CreateStock)
+					r.Put("/{id}", stockHandler.UpdateStock)
+					r.Delete("/{id}", stockHandler.DeleteStock)
+				})
+			})
+
+			// Protected user routes
+			r.Route("/user", func(r chi.Router) {
+				r.Use(authMiddleware.RequireAuth)
+				r.Use(rateLimiter.RateLimit)
+				// TODO: Add user profile endpoints
+			})
+
+			// Premium subscription routes
+			r.Route("/subscriptions", func(r chi.Router) {
+				r.Use(authMiddleware.RequireAuth)
+				r.Use(rateLimiter.RateLimit)
+				// TODO: Add subscription endpoints when handler is implemented
+			})
+
+			// Premium features (AI chat, advanced analytics)
+			r.Route("/premium", func(r chi.Router) {
+				r.Use(authMiddleware.RequirePremium)
+				r.Use(rateLimiter.RateLimit)
+				// TODO: Add premium endpoints
 			})
 		})
 	})
+
 	return r
 }

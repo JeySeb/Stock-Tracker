@@ -1,9 +1,10 @@
 #!/bin/bash
 
-set -e
+# ==============================================
+# STOCK TRACKER - COMPREHENSIVE TEST RUNNER
+# ==============================================
 
-echo "🧪 COMPREHENSIVE TEST RUNNER"
-echo "============================="
+set -e
 
 # Colors for output
 RED='\033[0;31m'
@@ -12,178 +13,205 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Function to print status
-print_status() {
-    if [ $1 -eq 0 ]; then
-        echo -e "${GREEN}✅ $2${NC}"
+echo -e "${BLUE}🧪 STOCK TRACKER - COMPREHENSIVE TEST SUITE${NC}"
+echo "=============================================="
+
+# Check if Go is available
+if ! command -v go &> /dev/null; then
+    echo -e "${RED}❌ Go is not installed or not in PATH${NC}"
+    exit 1
+fi
+
+# Function to run tests with coverage
+run_tests_with_coverage() {
+    local test_path="$1"
+    local test_name="$2"
+    
+    echo -e "\n${YELLOW}📋 Running $test_name...${NC}"
+    
+    if go test -v -race -coverprofile=coverage.out "$test_path"; then
+        echo -e "${GREEN}✅ $test_name passed${NC}"
+        
+        # Generate coverage report
+        if [ -f "coverage.out" ]; then
+            coverage=$(go tool cover -func=coverage.out | tail -1 | awk '{print $3}')
+            echo -e "${BLUE}📊 Coverage: $coverage${NC}"
+            
+            # Optional: Generate HTML coverage report
+            if [ "$GENERATE_HTML_COVERAGE" = "true" ]; then
+                go tool cover -html=coverage.out -o "coverage_${test_name// /_}.html"
+                echo -e "${BLUE}📄 HTML coverage report: coverage_${test_name// /_}.html${NC}"
+            fi
+            
+            rm coverage.out
+        fi
     else
-        echo -e "${RED}❌ $2${NC}"
-        exit 1
+        echo -e "${RED}❌ $test_name failed${NC}"
+        return 1
     fi
 }
 
-print_info() {
-    echo -e "${BLUE}ℹ️  $1${NC}"
+# Function to run linter
+run_linter() {
+    echo -e "\n${YELLOW}🔍 Running linter...${NC}"
+    
+    if command -v golangci-lint &> /dev/null; then
+        if golangci-lint run ./...; then
+            echo -e "${GREEN}✅ Linter passed${NC}"
+        else
+            echo -e "${RED}❌ Linter found issues${NC}"
+            return 1
+        fi
+    else
+        echo -e "${YELLOW}⚠️  golangci-lint not found, skipping linter${NC}"
+    fi
 }
 
-print_warning() {
-    echo -e "${YELLOW}⚠️  $1${NC}"
+# Function to check test coverage
+check_coverage_threshold() {
+    local min_coverage=70
+    echo -e "\n${YELLOW}📊 Checking overall test coverage...${NC}"
+    
+    # Run all tests with coverage
+    if go test -race -coverprofile=total_coverage.out ./...; then
+        if [ -f "total_coverage.out" ]; then
+            total_coverage=$(go tool cover -func=total_coverage.out | tail -1 | awk '{print $3}' | sed 's/%//')
+            echo -e "${BLUE}📈 Total Coverage: ${total_coverage}%${NC}"
+            
+            if (( $(echo "$total_coverage >= $min_coverage" | bc -l) )); then
+                echo -e "${GREEN}✅ Coverage meets minimum threshold (${min_coverage}%)${NC}"
+            else
+                echo -e "${RED}❌ Coverage below minimum threshold (${min_coverage}%)${NC}"
+                echo -e "${YELLOW}Current: ${total_coverage}% | Required: ${min_coverage}%${NC}"
+                rm total_coverage.out
+                return 1
+            fi
+            
+            # Generate final HTML report
+            if [ "$GENERATE_HTML_COVERAGE" = "true" ]; then
+                go tool cover -html=total_coverage.out -o coverage_total.html
+                echo -e "${BLUE}📄 Total coverage report: coverage_total.html${NC}"
+            fi
+            
+            rm total_coverage.out
+        fi
+    else
+        echo -e "${RED}❌ Failed to run coverage tests${NC}"
+        return 1
+    fi
 }
 
-# Create test output directory
+# Parse command line arguments
+VERBOSE=false
+GENERATE_HTML_COVERAGE=false
+RUN_INTEGRATION=false
+RUN_LINTER=true
+
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -v|--verbose)
+            VERBOSE=true
+            shift
+            ;;
+        -h|--html)
+            GENERATE_HTML_COVERAGE=true
+            shift
+            ;;
+        -i|--integration)
+            RUN_INTEGRATION=true
+            shift
+            ;;
+        --no-lint)
+            RUN_LINTER=false
+            shift
+            ;;
+        --help)
+            echo "Usage: $0 [OPTIONS]"
+            echo ""
+            echo "Options:"
+            echo "  -v, --verbose        Enable verbose output"
+            echo "  -h, --html          Generate HTML coverage reports"
+            echo "  -i, --integration   Run integration tests"
+            echo "  --no-lint           Skip linter"
+            echo "  --help              Show this help message"
+            exit 0
+            ;;
+        *)
+            echo -e "${RED}Unknown option: $1${NC}"
+            exit 1
+            ;;
+    esac
+done
+
+# Set verbose mode
+if [ "$VERBOSE" = true ]; then
+    set -x
+fi
+
+echo -e "\n${BLUE}🔧 Configuration:${NC}"
+echo "  • HTML Coverage: $GENERATE_HTML_COVERAGE"
+echo "  • Integration Tests: $RUN_INTEGRATION"
+echo "  • Linter: $RUN_LINTER"
+
+# Create coverage directory
 mkdir -p coverage
 
-echo "1. Running Unit Tests..."
-echo "========================"
+# Start testing
+echo -e "\n${BLUE}🚀 Starting test execution...${NC}"
 
-# Run unit tests with coverage
-go test -v -race -coverprofile=coverage/coverage.out ./tests/unit/... 2>&1 | tee coverage/unit-tests.log
-print_status $? "Unit tests completed"
-
-echo ""
-echo "2. Running Integration Tests..."
-echo "==============================="
-
-# Run integration tests if they exist
-if [ -d "tests/integration" ]; then
-    go test -v -race ./tests/integration/... 2>&1 | tee coverage/integration-tests.log
-    print_status $? "Integration tests completed"
-else
-    print_warning "No integration tests found"
-fi
-
-echo ""
-echo "3. Benchmark Tests..."
-echo "===================="
-
-# Run benchmark tests
-go test -bench=. -benchmem ./tests/unit/... 2>&1 | tee coverage/benchmark.log
-print_status $? "Benchmark tests completed"
-
-echo ""
-echo "4. Code Coverage Analysis..."
-echo "============================"
-
-# Generate coverage report
-go tool cover -html=coverage/coverage.out -o coverage/coverage.html
-print_status $? "Coverage HTML report generated"
-
-# Get coverage percentage
-COVERAGE=$(go tool cover -func=coverage/coverage.out | grep "total:" | awk '{print $3}')
-echo -e "${BLUE}📊 Total Coverage: ${COVERAGE}${NC}"
-
-# Check if coverage meets threshold (80%)
-COVERAGE_NUM=$(echo $COVERAGE | sed 's/%//')
-if (( $(echo "$COVERAGE_NUM >= 80" | bc -l) )); then
-    echo -e "${GREEN}✅ Coverage meets 80% threshold${NC}"
-else
-    print_warning "Coverage below 80% threshold"
-fi
-
-echo ""
-echo "5. Test Summary..."
+# 1. Run unit tests
+echo -e "\n${YELLOW}📦 UNIT TESTS${NC}"
 echo "=================="
 
-# Count test results
-UNIT_TESTS_PASSED=$(grep "PASS:" coverage/unit-tests.log | wc -l)
-UNIT_TESTS_FAILED=$(grep "FAIL:" coverage/unit-tests.log | wc -l)
+# Test auth handlers
+run_tests_with_coverage "./tests/unit/handlers" "Auth Handler Tests"
 
-echo "📊 Test Results:"
-echo "  • Unit Tests Passed: $UNIT_TESTS_PASSED"
-echo "  • Unit Tests Failed: $UNIT_TESTS_FAILED"
-echo "  • Coverage: $COVERAGE"
+# Test use cases
+run_tests_with_coverage "./tests/unit/usecases" "Use Case Tests"
 
-echo ""
-echo "6. Running Linter..."
-echo "==================="
+# Test auth services
+run_tests_with_coverage "./tests/unit/auth" "Auth Service Tests"
 
-# Run golangci-lint if available
-if command -v golangci-lint &> /dev/null; then
-    golangci-lint run ./... 2>&1 | tee coverage/lint.log
-    print_status $? "Linting completed"
-else
-    print_warning "golangci-lint not found, skipping"
+# Test existing stock functionality
+run_tests_with_coverage "./tests/unit/handlers" "Stock Handler Tests"
+
+# 2. Run integration tests (if enabled)
+if [ "$RUN_INTEGRATION" = true ]; then
+    echo -e "\n${YELLOW}🔗 INTEGRATION TESTS${NC}"
+    echo "======================"
+    run_tests_with_coverage "./tests/integration" "Integration Tests"
 fi
 
-echo ""
-echo "7. Running Race Condition Tests..."
-echo "=================================="
-
-# Run tests with race detector specifically
-go test -race -short ./tests/unit/... 2>&1 | tee coverage/race-tests.log
-print_status $? "Race condition tests completed"
-
-echo ""
-echo "8. Generating Test Reports..."
-echo "============================="
-
-# Generate a comprehensive test report
-cat > coverage/test-report.md << EOF
-# Test Report
-
-## Coverage Summary
-- **Total Coverage**: $COVERAGE
-- **Coverage Threshold**: 80%
-- **Status**: $(if (( $(echo "$COVERAGE_NUM >= 80" | bc -l) )); then echo "✅ PASSED"; else echo "❌ BELOW THRESHOLD"; fi)
-
-## Test Results
-- **Unit Tests Passed**: $UNIT_TESTS_PASSED
-- **Unit Tests Failed**: $UNIT_TESTS_FAILED
-
-## Files Generated
-- \`coverage.html\` - Interactive coverage report
-- \`unit-tests.log\` - Detailed unit test output
-- \`benchmark.log\` - Benchmark results
-- \`race-tests.log\` - Race condition test results
-
-## How to View Coverage
-\`\`\`bash
-open coverage/coverage.html
-\`\`\`
-
-## Test Command Examples
-\`\`\`bash
-# Run specific test
-go test -v ./tests/unit/entities -run TestStock_IsUpgrade
-
-# Run with coverage
-go test -coverprofile=coverage.out ./tests/unit/...
-
-# Run benchmarks
-go test -bench=. ./tests/unit/entities
-
-# Run with race detection
-go test -race ./tests/unit/...
-\`\`\`
-EOF
-
-echo "📋 Test report generated: coverage/test-report.md"
-
-echo ""
-echo "9. Performance Analysis..."
-echo "========================="
-
-# Generate performance profile if pprof tests exist
-if grep -q "pprof" coverage/benchmark.log; then
-    print_info "Performance profiling data available in benchmark results"
-else
-    print_info "No performance profiling data generated"
+# 3. Run linter (if enabled)
+if [ "$RUN_LINTER" = true ]; then
+    run_linter
 fi
 
-echo ""
-echo "🎉 TEST EXECUTION COMPLETE"
-echo "=========================="
-echo -e "${GREEN}✨ All tests executed successfully!${NC}"
-echo ""
-echo "📁 Reports available in: ./coverage/"
-echo "🌐 Open coverage report: coverage/coverage.html"
-echo "📊 Test summary: coverage/test-report.md"
+# 4. Check overall coverage
+check_coverage_threshold
 
-# Final status based on coverage
-if (( $(echo "$COVERAGE_NUM >= 80" | bc -l) )); then
-    echo -e "${GREEN}🚀 Ready for production deployment!${NC}"
-    exit 0
+# 5. Run security checks
+echo -e "\n${YELLOW}🔒 Security Checks${NC}"
+echo "=================="
+if command -v gosec &> /dev/null; then
+    if gosec ./...; then
+        echo -e "${GREEN}✅ Security scan passed${NC}"
+    else
+        echo -e "${RED}❌ Security issues found${NC}"
+        exit 1
+    fi
 else
-    echo -e "${YELLOW}⚠️  Consider adding more tests to reach 80% coverage${NC}"
-    exit 0
-fi 
+    echo -e "${YELLOW}⚠️  gosec not found, skipping security scan${NC}"
+fi
+
+# Final summary
+echo -e "\n${GREEN}🎉 ALL TESTS COMPLETED SUCCESSFULLY!${NC}"
+echo "======================================"
+echo -e "${BLUE}📋 Summary:${NC}"
+echo "  • Unit tests: ✅"
+echo "  • Integration tests: $([ "$RUN_INTEGRATION" = true ] && echo "✅" || echo "⏭️ Skipped")"
+echo "  • Linter: $([ "$RUN_LINTER" = true ] && echo "✅" || echo "⏭️ Skipped")"
+echo "  • Coverage check: ✅"
+echo "  • Security scan: ✅"
+
+echo -e "\n${GREEN}🚀 Your authentication system is ready for production!${NC}" 

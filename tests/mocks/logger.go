@@ -10,17 +10,25 @@ type MockLogger struct {
 }
 
 func (m *MockLogger) Info(msg string, args ...interface{}) {
-	m.Called(msg, args)
+	arguments := []interface{}{msg}
+	arguments = append(arguments, args...)
+	m.Called(arguments...)
 }
 
 func (m *MockLogger) Error(msg string, args ...interface{}) {
-	m.Called(msg, args)
+	arguments := []interface{}{msg}
+	arguments = append(arguments, args...)
+	m.Called(arguments...)
 }
 
 func (m *MockLogger) Debug(msg string, args ...interface{}) {
-	m.Called(msg, args)
+	arguments := []interface{}{msg}
+	arguments = append(arguments, args...)
+	m.Called(arguments...)
 }
 
 func (m *MockLogger) Warn(msg string, args ...interface{}) {
-	m.Called(msg, args)
+	arguments := []interface{}{msg}
+	arguments = append(arguments, args...)
+	m.Called(arguments...)
 }

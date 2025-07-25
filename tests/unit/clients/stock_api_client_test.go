@@ -60,7 +60,7 @@ func TestStockAPIClient_FetchPage_Success(t *testing.T) {
 	defer server.Close()
 
 	logger := &mocks.MockLogger{}
-	logger.On("Warn", mock.AnythingOfType("string"), mock.Anything).Maybe()
+	logger.On("Warn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 
 	client := clients.NewStockAPIClient(server.URL, "test-api-key", logger)
 
@@ -205,7 +205,7 @@ func TestStockAPIClient_FetchAllStocks_Success(t *testing.T) {
 	defer server.Close()
 
 	logger := &mocks.MockLogger{}
-	logger.On("Info", mock.AnythingOfType("string"), mock.Anything).Maybe()
+	logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 
 	client := clients.NewStockAPIClient(server.URL, "test-api-key", logger)
 
@@ -230,8 +230,8 @@ func TestStockAPIClient_FetchAllStocks_ContextCancellation(t *testing.T) {
 	defer server.Close()
 
 	logger := &mocks.MockLogger{}
-	logger.On("Info", mock.AnythingOfType("string"), mock.Anything).Maybe()
-	logger.On("Error", mock.AnythingOfType("string"), mock.Anything).Maybe()
+	logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
+	logger.On("Error", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 
 	client := clients.NewStockAPIClient(server.URL, "test-api-key", logger)
 
@@ -271,7 +271,7 @@ func TestStockAPIClient_ConvertAPIItemToStock_InvalidTime(t *testing.T) {
 	defer server.Close()
 
 	logger := &mocks.MockLogger{}
-	logger.On("Warn", mock.AnythingOfType("string"), mock.Anything).Return()
+	logger.On("Warn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 
 	client := clients.NewStockAPIClient(server.URL, "test-api-key", logger)
 
@@ -283,7 +283,7 @@ func TestStockAPIClient_ConvertAPIItemToStock_InvalidTime(t *testing.T) {
 	assert.Empty(t, nextPage)
 
 	// Verify warning was logged for invalid time format
-	logger.AssertCalled(t, "Warn", mock.AnythingOfType("string"), mock.Anything)
+	logger.AssertCalled(t, "Warn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything)
 }
 
 func TestStockAPIClient_ParsePrice(t *testing.T) {
@@ -350,7 +350,7 @@ func TestStockAPIClient_ParsePrice(t *testing.T) {
 			defer server.Close()
 
 			logger := &mocks.MockLogger{}
-			logger.On("Warn", mock.AnythingOfType("string"), mock.Anything).Maybe()
+			logger.On("Warn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 
 			client := clients.NewStockAPIClient(server.URL, "test-api-key", logger)
 
@@ -410,7 +410,7 @@ func TestStockAPIClient_RateLimit(t *testing.T) {
 	defer server.Close()
 
 	logger := &mocks.MockLogger{}
-	logger.On("Info", mock.AnythingOfType("string"), mock.Anything).Maybe()
+	logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 
 	client := clients.NewStockAPIClient(server.URL, "test-api-key", logger)
 
@@ -460,7 +460,7 @@ func BenchmarkStockAPIClient_ConvertAPIItem(b *testing.B) {
 	defer server.Close()
 
 	logger := &mocks.MockLogger{}
-	logger.On("Warn", mock.AnythingOfType("string"), mock.Anything).Maybe()
+	logger.On("Warn", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 
 	client := clients.NewStockAPIClient(server.URL, "test-key", logger)
 

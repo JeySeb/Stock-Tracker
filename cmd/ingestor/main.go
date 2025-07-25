@@ -8,7 +8,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"stock-tracker/internal/domain/repositories"
 	"stock-tracker/internal/domain/usecases"
 	"stock-tracker/internal/infrastructure/clients"
 	"stock-tracker/internal/infrastructure/config"
@@ -46,7 +45,7 @@ func main() {
 
 	// Initialize repositories
 	stockRepo := database.NewStockRepository(db.GetPool(), logger)
-	brokerRepo := repositories.NewBrokerRepository(db.GetPool())
+	brokerRepo := database.NewBrokerRepository(db.GetPool())
 
 	// Initialize external clients
 	stockAPIClient := clients.NewStockAPIClient(cfg.StockAPIURL, cfg.StockAPIKey, logger)
