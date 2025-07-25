@@ -5,7 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	"stock-tracker/internal/domain/entities"
+	"stock-tracker/internal/domain/model"
 	"stock-tracker/internal/domain/usecases"
 	"stock-tracker/internal/infrastructure/middleware"
 	"stock-tracker/pkg/logger"
@@ -14,6 +14,8 @@ import (
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
+
+	"stock-tracker/internal/domain/shared/enums"
 )
 
 type SubscriptionHandler struct {
@@ -117,6 +119,6 @@ func (h *SubscriptionHandler) respondWithJSON(w http.ResponseWriter, r *http.Req
 	render.JSON(w, r, data)
 }
 
-func isValidPlan(plan entities.SubscriptionPlan) bool {
-	return plan == entities.PlanMonthly || plan == entities.PlanYearly
+func isValidPlan(plan model.SubscriptionPlan) bool {
+	return plan == enums.PLAN_MONTHLY || plan == enums.PLAN_YEARLY
 }

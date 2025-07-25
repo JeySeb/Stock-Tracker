@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
-	"stock-tracker/internal/domain/entities"
+	"stock-tracker/internal/domain/model"
 	"stock-tracker/internal/domain/repositories"
 	"stock-tracker/pkg/logger"
 
@@ -23,7 +23,7 @@ func NewUserRepository(db *pgxpool.Pool, logger logger.Logger) repositories.User
 	}
 }
 
-func (r *userRepository) Create(ctx context.Context, user *entities.User) error {
+func (r *userRepository) Create(ctx context.Context, user *model.User) error {
 	query := `
         INSERT INTO users (id, email, password_hash, first_name, last_name, tier, is_verified, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -42,13 +42,13 @@ func (r *userRepository) Create(ctx context.Context, user *entities.User) error 
 	return nil
 }
 
-func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.User, error) {
+func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
 	query := `
         SELECT id, email, password_hash, first_name, last_name, tier, is_verified, last_login, created_at, updated_at
         FROM users WHERE id = $1
     `
 
-	user := &entities.User{}
+	user := &model.User{}
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&user.ID, &user.Email, &user.Password, &user.FirstName, &user.LastName,
 		&user.Tier, &user.IsVerified, &user.LastLogin, &user.CreatedAt, &user.UpdatedAt,
@@ -61,13 +61,13 @@ func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.U
 	return user, nil
 }
 
-func (r *userRepository) GetByEmail(ctx context.Context, email string) (*entities.User, error) {
+func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
 	query := `
         SELECT id, email, password_hash, first_name, last_name, tier, is_verified, last_login, created_at, updated_at
         FROM users WHERE email = $1
     `
 
-	user := &entities.User{}
+	user := &model.User{}
 	err := r.db.QueryRow(ctx, query, email).Scan(
 		&user.ID, &user.Email, &user.Password, &user.FirstName, &user.LastName,
 		&user.Tier, &user.IsVerified, &user.LastLogin, &user.CreatedAt, &user.UpdatedAt,
@@ -80,7 +80,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*entitie
 	return user, nil
 }
 
-func (r *userRepository) Update(ctx context.Context, user *entities.User) error {
+func (r *userRepository) Update(ctx context.Context, user *model.User) error {
 	query := `
         UPDATE users 
         SET email = $2, password_hash = $3, first_name = $4, last_name = $5,
@@ -161,7 +161,7 @@ func (r *userRepository) GetUserCount(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-func (r *userRepository) GetUsersByTier(ctx context.Context, tier entities.UserTier) ([]*entities.User, error) {
+func (r *userRepository) GetUsersByTier(ctx context.Context, tier model.UserTier) ([]*model.User, error) {
 	query := `
         SELECT id, email, password_hash, first_name, last_name, tier, is_verified, last_login, created_at, updated_at
         FROM users WHERE tier = $1
@@ -174,9 +174,9 @@ func (r *userRepository) GetUsersByTier(ctx context.Context, tier entities.UserT
 	}
 	defer rows.Close()
 
-	var users []*entities.User
+	var users []*model.User
 	for rows.Next() {
-		user := &entities.User{}
+		user := &model.User{}
 		err := rows.Scan(
 			&user.ID, &user.Email, &user.Password, &user.FirstName, &user.LastName,
 			&user.Tier, &user.IsVerified, &user.LastLogin, &user.CreatedAt, &user.UpdatedAt,

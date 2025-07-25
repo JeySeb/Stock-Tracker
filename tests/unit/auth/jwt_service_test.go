@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"stock-tracker/internal/domain/entities"
+	"stock-tracker/internal/domain/model"
 	"stock-tracker/internal/infrastructure/auth"
 )
 
@@ -16,12 +16,12 @@ func TestJWTService_GenerateTokenPair_Success(t *testing.T) {
 	// Arrange
 	jwtService := auth.NewJWTService("test-secret-key-minimum-32-characters")
 
-	user := &entities.User{
+	user := &model.User{
 		ID:        uuid.New(),
 		Email:     "test@example.com",
 		FirstName: "Test",
 		LastName:  "User",
-		Tier:      entities.TIER_BASIC,
+		Tier:      model.TIER_BASIC,
 	}
 
 	// Act
@@ -51,12 +51,12 @@ func TestJWTService_ValidateAccessToken_Success(t *testing.T) {
 	// Arrange
 	jwtService := auth.NewJWTService("test-secret-key-minimum-32-characters")
 
-	user := &entities.User{
+	user := &model.User{
 		ID:        uuid.New(),
 		Email:     "test@example.com",
 		FirstName: "Test",
 		LastName:  "User",
-		Tier:      entities.TIER_PREMIUM,
+		Tier:      model.TIER_PREMIUM,
 	}
 
 	tokens, err := jwtService.GenerateTokenPair(user)
@@ -103,10 +103,10 @@ func TestJWTService_ValidateAccessToken_WrongSigningKey(t *testing.T) {
 	jwtService1 := auth.NewJWTService("first-secret-key-minimum-32-chars")
 	jwtService2 := auth.NewJWTService("second-secret-key-minimum-32-chars")
 
-	user := &entities.User{
+	user := &model.User{
 		ID:    uuid.New(),
 		Email: "test@example.com",
-		Tier:  entities.TIER_BASIC,
+		Tier:  model.TIER_BASIC,
 	}
 
 	tokens, err := jwtService1.GenerateTokenPair(user)
@@ -140,12 +140,12 @@ func TestJWTService_TokenPair_Integration(t *testing.T) {
 	// Arrange
 	jwtService := auth.NewJWTService("test-secret-key-minimum-32-characters")
 
-	user := &entities.User{
+	user := &model.User{
 		ID:        uuid.New(),
 		Email:     "integration@example.com",
 		FirstName: "Integration",
 		LastName:  "Test",
-		Tier:      entities.TIER_PREMIUM,
+		Tier:      model.TIER_PREMIUM,
 	}
 
 	// Act - Generate tokens

@@ -3,13 +3,13 @@ package testhelpers
 import (
 	"time"
 
-	"stock-tracker/internal/domain/entities"
-	"stock-tracker/internal/domain/valueObjects"
+	"stock-tracker/internal/domain/model"
+	"stock-tracker/internal/domain/authentication/validation"
 )
 
 // CreateTestStock creates a stock entity for testing
-func CreateTestStock(ticker, company, brokerage, action string) *entities.Stock {
-	stock := entities.NewStock(ticker, company, brokerage, action, time.Now())
+func CreateTestStock(ticker, company, brokerage, action string) *model.Stock {
+	stock := model.NewStock(ticker, company, brokerage, action, time.Now())
 	stock.RatingFrom = "Hold"
 	stock.RatingTo = "Buy"
 	stock.TargetFrom = 100.0
@@ -18,8 +18,8 @@ func CreateTestStock(ticker, company, brokerage, action string) *entities.Stock 
 }
 
 // CreateTestBroker creates a broker entity for testing
-func CreateTestBroker(name string, credibility float64) *entities.Broker {
-	return entities.NewBroker(name, credibility)
+func CreateTestBroker(name string, credibility float64) *model.Broker {
+	return model.NewBroker(name, credibility)
 }
 
 // CreateTestStockFilters creates stock filters for testing
@@ -94,8 +94,8 @@ var TestStockData = []struct {
 }
 
 // CreateTestStocks creates multiple test stocks
-func CreateTestStocks(count int) []*entities.Stock {
-	stocks := make([]*entities.Stock, 0, count)
+func CreateTestStocks(count int) []*model.Stock {
+	stocks := make([]*model.Stock, 0, count)
 
 	for i := 0; i < count; i++ {
 		dataIndex := i % len(TestStockData)
@@ -119,7 +119,7 @@ func CreateTestStocks(count int) []*entities.Stock {
 }
 
 // AssertStockEquals compares two stocks for equality in tests
-func AssertStockEquals(expected, actual *entities.Stock) bool {
+func AssertStockEquals(expected, actual *model.Stock) bool {
 	return expected.Ticker == actual.Ticker &&
 		expected.Company == actual.Company &&
 		expected.Brokerage == actual.Brokerage &&

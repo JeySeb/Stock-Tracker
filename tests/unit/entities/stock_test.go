@@ -1,4 +1,4 @@
-package entities_test
+package model_test
 
 import (
 	"strings"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"stock-tracker/internal/domain/entities"
+	"stock-tracker/internal/domain/model"
 )
 
 func TestNewStock(t *testing.T) {
@@ -17,7 +17,7 @@ func TestNewStock(t *testing.T) {
 	action := "upgraded by"
 	eventTime := time.Now()
 
-	stock := entities.NewStock(ticker, company, brokerage, action, eventTime)
+	stock := model.NewStock(ticker, company, brokerage, action, eventTime)
 
 	assert.NotNil(t, stock)
 	assert.NotEmpty(t, stock.ID)
@@ -75,7 +75,7 @@ func TestStock_IsUpgrade(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			stock := &entities.Stock{Action: tc.action}
+			stock := &model.Stock{Action: tc.action}
 			result := stock.IsUpgrade()
 			assert.Equal(t, tc.expected, result)
 		})
@@ -129,7 +129,7 @@ func TestStock_GetPriceTargetChange(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			stock := &entities.Stock{
+			stock := &model.Stock{
 				TargetFrom: tc.targetFrom,
 				TargetTo:   tc.targetTo,
 			}
@@ -186,7 +186,7 @@ func TestStock_GetRatingScore(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			stock := &entities.Stock{
+			stock := &model.Stock{
 				RatingFrom: tc.ratingFrom,
 				RatingTo:   tc.ratingTo,
 			}
@@ -226,7 +226,7 @@ func TestStock_GetRatingChangeScore(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			stock := &entities.Stock{
+			stock := &model.Stock{
 				RatingFrom: tc.ratingFrom,
 				RatingTo:   tc.ratingTo,
 			}
@@ -290,7 +290,7 @@ func TestStock_IsRecommendation(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			stock := &entities.Stock{
+			stock := &model.Stock{
 				Action:     tc.action,
 				RatingFrom: tc.ratingFrom,
 				RatingTo:   tc.ratingTo,
@@ -321,7 +321,7 @@ func TestStock_GetPriceChange(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			stock := &entities.Stock{
+			stock := &model.Stock{
 				PriceClose: tc.priceClose,
 			}
 			result := stock.GetPriceChange()
@@ -332,12 +332,12 @@ func TestStock_GetPriceChange(t *testing.T) {
 
 func TestStock_Validate(t *testing.T) {
 	// Test valid stock
-	validStock := entities.NewStock("AAPL", "Apple Inc.", "Goldman Sachs", "upgraded by", time.Now())
+	validStock := model.NewStock("AAPL", "Apple Inc.", "Goldman Sachs", "upgraded by", time.Now())
 	err := validStock.Validate()
 	assert.NoError(t, err)
 
 	// Test invalid stock - empty ticker
-	invalidStock := &entities.Stock{
+	invalidStock := &model.Stock{
 		Ticker:  "",
 		Company: "Apple Inc.",
 		Action:  "upgraded by",
@@ -347,7 +347,7 @@ func TestStock_Validate(t *testing.T) {
 	assert.Contains(t, strings.ToLower(err.Error()), "ticker")
 
 	// Test invalid stock - empty company
-	invalidStock2 := &entities.Stock{
+	invalidStock2 := &model.Stock{
 		Ticker:  "AAPL",
 		Company: "",
 		Action:  "upgraded by",
@@ -359,7 +359,7 @@ func TestStock_Validate(t *testing.T) {
 
 // Benchmark tests for performance critical methods
 func BenchmarkStock_IsUpgrade(b *testing.B) {
-	stock := &entities.Stock{Action: "upgraded by Goldman Sachs"}
+	stock := &model.Stock{Action: "upgraded by Goldman Sachs"}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -368,7 +368,7 @@ func BenchmarkStock_IsUpgrade(b *testing.B) {
 }
 
 func BenchmarkStock_GetRatingScore(b *testing.B) {
-	stock := &entities.Stock{
+	stock := &model.Stock{
 		RatingFrom: "Hold",
 		RatingTo:   "Buy",
 	}

@@ -2,7 +2,7 @@ package database
 
 import (
 	"context"
-	"stock-tracker/internal/domain/entities"
+	"stock-tracker/internal/domain/model"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,7 +18,7 @@ func NewChatRepository(db *pgxpool.Pool) *ChatRepositoryImpl {
 }
 
 // CreateSession stores a new chat session in the database
-func (r *ChatRepositoryImpl) CreateSession(ctx context.Context, session *entities.ChatSession) error {
+func (r *ChatRepositoryImpl) CreateSession(ctx context.Context, session *model.ChatSession) error {
 	query := `
 		INSERT INTO chat_sessions (id, user_id, title, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5)
@@ -34,7 +34,7 @@ func (r *ChatRepositoryImpl) CreateSession(ctx context.Context, session *entitie
 }
 
 // GetSessionsByUserID retrieves all chat sessions for a given user ID
-func (r *ChatRepositoryImpl) GetSessionsByUserID(ctx context.Context, userID uuid.UUID) ([]*entities.ChatSession, error) {
+func (r *ChatRepositoryImpl) GetSessionsByUserID(ctx context.Context, userID uuid.UUID) ([]*model.ChatSession, error) {
 	query := `
 		SELECT id, user_id, title, created_at, updated_at
 		FROM chat_sessions 
@@ -47,9 +47,9 @@ func (r *ChatRepositoryImpl) GetSessionsByUserID(ctx context.Context, userID uui
 	}
 	defer rows.Close()
 
-	var sessions []*entities.ChatSession
+	var sessions []*model.ChatSession
 	for rows.Next() {
-		session := &entities.ChatSession{}
+		session := &model.ChatSession{}
 		err := rows.Scan(
 			&session.ID,
 			&session.UserID,
@@ -69,13 +69,13 @@ func (r *ChatRepositoryImpl) GetSessionsByUserID(ctx context.Context, userID uui
 }
 
 // GetSessionByID retrieves a chat session by its ID
-func (r *ChatRepositoryImpl) GetSessionByID(ctx context.Context, sessionID uuid.UUID) (*entities.ChatSession, error) {
+func (r *ChatRepositoryImpl) GetSessionByID(ctx context.Context, sessionID uuid.UUID) (*model.ChatSession, error) {
 	query := `
 		SELECT id, user_id, title, created_at, updated_at
 		FROM chat_sessions 
 		WHERE id = $1
 	`
-	session := &entities.ChatSession{}
+	session := &model.ChatSession{}
 	err := r.db.QueryRow(ctx, query, sessionID).Scan(
 		&session.ID,
 		&session.UserID,
@@ -90,7 +90,7 @@ func (r *ChatRepositoryImpl) GetSessionByID(ctx context.Context, sessionID uuid.
 }
 
 // UpdateSession updates an existing chat session
-func (r *ChatRepositoryImpl) UpdateSession(ctx context.Context, session *entities.ChatSession) error {
+func (r *ChatRepositoryImpl) UpdateSession(ctx context.Context, session *model.ChatSession) error {
 	query := `
 		UPDATE chat_sessions 
 		SET title = $1, updated_at = $2
@@ -112,7 +112,7 @@ func (r *ChatRepositoryImpl) DeleteSession(ctx context.Context, sessionID uuid.U
 }
 
 // CreateMessage stores a new chat message in the database
-func (r *ChatRepositoryImpl) CreateMessage(ctx context.Context, message *entities.ChatMessage) error {
+func (r *ChatRepositoryImpl) CreateMessage(ctx context.Context, message *model.ChatMessage) error {
 	query := `
 		INSERT INTO chat_messages (id, session_id, role, content, created_at)
 		VALUES ($1, $2, $3, $4, $5)
@@ -128,7 +128,7 @@ func (r *ChatRepositoryImpl) CreateMessage(ctx context.Context, message *entitie
 }
 
 // GetMessagesBySessionID retrieves all messages for a given session ID
-func (r *ChatRepositoryImpl) GetMessagesBySessionID(ctx context.Context, sessionID uuid.UUID) ([]*entities.ChatMessage, error) {
+func (r *ChatRepositoryImpl) GetMessagesBySessionID(ctx context.Context, sessionID uuid.UUID) ([]*model.ChatMessage, error) {
 	query := `
 		SELECT id, session_id, role, content, created_at
 		FROM chat_messages 
@@ -141,9 +141,9 @@ func (r *ChatRepositoryImpl) GetMessagesBySessionID(ctx context.Context, session
 	}
 	defer rows.Close()
 
-	var messages []*entities.ChatMessage
+	var messages []*model.ChatMessage
 	for rows.Next() {
-		message := &entities.ChatMessage{}
+		message := &model.ChatMessage{}
 		err := rows.Scan(
 			&message.ID,
 			&message.SessionID,

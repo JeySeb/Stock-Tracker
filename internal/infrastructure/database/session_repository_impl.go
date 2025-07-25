@@ -2,7 +2,7 @@ package database
 
 import (
 	"context"
-	"stock-tracker/internal/domain/entities"
+	"stock-tracker/internal/domain/model"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -18,7 +18,7 @@ func NewSessionRepository(db *pgxpool.Pool) *SessionRepositoryImpl {
 }
 
 // Create stores a new session in the database
-func (r *SessionRepositoryImpl) Create(ctx context.Context, session *entities.Session) error {
+func (r *SessionRepositoryImpl) Create(ctx context.Context, session *model.Session) error {
 	query := `
 		INSERT INTO sessions (id, user_id, refresh_token, user_agent, ip_address, expires_at, created_at)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
@@ -36,13 +36,13 @@ func (r *SessionRepositoryImpl) Create(ctx context.Context, session *entities.Se
 }
 
 // GetByRefreshToken retrieves a session by its refresh token
-func (r *SessionRepositoryImpl) GetByRefreshToken(ctx context.Context, refreshToken string) (*entities.Session, error) {
+func (r *SessionRepositoryImpl) GetByRefreshToken(ctx context.Context, refreshToken string) (*model.Session, error) {
 	query := `
 		SELECT id, user_id, refresh_token, user_agent, ip_address, expires_at, created_at
 		FROM sessions 
 		WHERE refresh_token = $1
 	`
-	session := &entities.Session{}
+	session := &model.Session{}
 	err := r.db.QueryRow(ctx, query, refreshToken).Scan(
 		&session.ID,
 		&session.UserID,
@@ -80,7 +80,7 @@ func (r *SessionRepositoryImpl) DeleteByRefreshToken(ctx context.Context, refres
 }
 
 // GetByUserID retrieves all active sessions for a given user ID
-func (r *SessionRepositoryImpl) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*entities.Session, error) {
+func (r *SessionRepositoryImpl) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*model.Session, error) {
 	query := `
 		SELECT id, user_id, refresh_token, user_agent, ip_address, expires_at, created_at
 		FROM sessions 
@@ -93,9 +93,9 @@ func (r *SessionRepositoryImpl) GetByUserID(ctx context.Context, userID uuid.UUI
 	}
 	defer rows.Close()
 
-	var sessions []*entities.Session
+	var sessions []*model.Session
 	for rows.Next() {
-		session := &entities.Session{}
+		session := &model.Session{}
 		err := rows.Scan(
 			&session.ID,
 			&session.UserID,

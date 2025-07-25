@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"stock-tracker/internal/domain/entities"
+	"stock-tracker/internal/domain/model"
 	"stock-tracker/internal/domain/usecases"
 	"stock-tracker/internal/infrastructure/auth"
 	"stock-tracker/internal/presentation/handlers"
@@ -25,20 +25,20 @@ type mockUserUseCase struct {
 	mock.Mock
 }
 
-func (m *mockUserUseCase) Register(ctx context.Context, req usecases.RegisterRequest) (*entities.User, *auth.TokenPair, error) {
+func (m *mockUserUseCase) Register(ctx context.Context, req usecases.RegisterRequest) (*model.User, *auth.TokenPair, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, nil, args.Error(2)
 	}
-	return args.Get(0).(*entities.User), args.Get(1).(*auth.TokenPair), args.Error(2)
+	return args.Get(0).(*model.User), args.Get(1).(*auth.TokenPair), args.Error(2)
 }
 
-func (m *mockUserUseCase) Login(ctx context.Context, req usecases.LoginRequest) (*entities.User, *auth.TokenPair, error) {
+func (m *mockUserUseCase) Login(ctx context.Context, req usecases.LoginRequest) (*model.User, *auth.TokenPair, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, nil, args.Error(2)
 	}
-	return args.Get(0).(*entities.User), args.Get(1).(*auth.TokenPair), args.Error(2)
+	return args.Get(0).(*model.User), args.Get(1).(*auth.TokenPair), args.Error(2)
 }
 
 func (m *mockUserUseCase) RefreshToken(ctx context.Context, refreshToken string) (*auth.TokenPair, error) {
@@ -56,12 +56,12 @@ func TestAuthHandler_Register_Success(t *testing.T) {
 	handler := handlers.NewAuthHandler(mockUseCase, mockLogger)
 
 	userID := uuid.New()
-	testUser := &entities.User{
+	testUser := &model.User{
 		ID:        userID,
 		Email:     "test@example.com",
 		FirstName: "Test",
 		LastName:  "User",
-		Tier:      entities.TIER_BASIC,
+		Tier:      model.TIER_BASIC,
 	}
 
 	testTokens := &auth.TokenPair{
@@ -204,12 +204,12 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 	handler := handlers.NewAuthHandler(mockUseCase, mockLogger)
 
 	userID := uuid.New()
-	testUser := &entities.User{
+	testUser := &model.User{
 		ID:        userID,
 		Email:     "test@example.com",
 		FirstName: "Test",
 		LastName:  "User",
-		Tier:      entities.TIER_BASIC,
+		Tier:      model.TIER_BASIC,
 	}
 
 	testTokens := &auth.TokenPair{

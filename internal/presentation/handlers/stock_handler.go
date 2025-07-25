@@ -5,7 +5,7 @@ import (
 	"strconv"
 
 	"stock-tracker/internal/domain/usecases"
-	"stock-tracker/internal/domain/valueObjects"
+	"stock-tracker/internal/domain/authentication/validation"
 	"stock-tracker/pkg/logger"
 
 	"github.com/go-chi/chi/v5"
@@ -19,7 +19,7 @@ type StockHandler struct {
 
 type StockResponse struct {
 	Data       interface{}              `json:"data"`
-	Pagination *valueObjects.Pagination `json:"pagination,omitempty"`
+	Pagination *validation.Pagination `json:"pagination,omitempty"`
 	Message    string                   `json:"message,omitempty"`
 }
 
@@ -88,8 +88,8 @@ func (h *StockHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, response)
 }
 
-func (h *StockHandler) parseFilters(r *http.Request) valueObjects.StockFilters {
-	filters := valueObjects.StockFilters{
+func (h *StockHandler) parseFilters(r *http.Request) validation.StockFilters {
+	filters := validation.StockFilters{
 		Ticker:    r.URL.Query().Get("ticker"),
 		Company:   r.URL.Query().Get("company"),
 		Brokerage: r.URL.Query().Get("brokerage"),

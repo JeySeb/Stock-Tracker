@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"stock-tracker/internal/domain/entities"
+	"stock-tracker/internal/domain/model"
 	"stock-tracker/internal/domain/usecases"
 	"stock-tracker/internal/infrastructure/auth"
 	"stock-tracker/pkg/logger"
@@ -16,8 +16,8 @@ import (
 
 // UserUseCaseInterface defines the contract for user use cases
 type UserUseCaseInterface interface {
-	Register(ctx context.Context, req usecases.RegisterRequest) (*entities.User, *auth.TokenPair, error)
-	Login(ctx context.Context, req usecases.LoginRequest) (*entities.User, *auth.TokenPair, error)
+	Register(ctx context.Context, req usecases.RegisterRequest) (*model.User, *auth.TokenPair, error)
+	Login(ctx context.Context, req usecases.LoginRequest) (*model.User, *auth.TokenPair, error)
 	RefreshToken(ctx context.Context, refreshToken string) (*auth.TokenPair, error)
 }
 

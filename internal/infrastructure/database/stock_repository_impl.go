@@ -9,9 +9,9 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"stock-tracker/internal/domain/entities"
+	"stock-tracker/internal/domain/model"
 	"stock-tracker/internal/domain/repositories"
-	"stock-tracker/internal/domain/valueObjects"
+	"stock-tracker/internal/domain/authentication/validation"
 	"stock-tracker/pkg/logger"
 )
 
@@ -29,7 +29,7 @@ func NewStockRepository(db *pgxpool.Pool, logger logger.Logger) repositories.Sto
 }
 
 // Create inserts a new stock record into the database.
-func (r *stockRepository) Create(ctx context.Context, stock *entities.Stock) error {
+func (r *stockRepository) Create(ctx context.Context, stock *model.Stock) error {
 	query := `
         INSERT INTO stocks (id, ticker, company, broker_id, action, rating_from, rating_to, 
                            target_from, target_to, event_time, price_close, created_at, updated_at)
@@ -52,7 +52,7 @@ func (r *stockRepository) Create(ctx context.Context, stock *entities.Stock) err
 
 // BulkCreate inserts multiple stock records in a single transaction.
 // If any insert fails, the transaction is rolled back.
-func (r *stockRepository) BulkCreate(ctx context.Context, stocks []*entities.Stock) error {
+func (r *stockRepository) BulkCreate(ctx context.Context, stocks []*model.Stock) error {
 	if len(stocks) == 0 {
 		return nil
 	}
@@ -91,7 +91,7 @@ func (r *stockRepository) BulkCreate(ctx context.Context, stocks []*entities.Sto
 }
 
 // GetAll retrieves stocks from the database based on the provided filters and returns paginated results.
-func (r *stockRepository) GetAll(ctx context.Context, filters valueObjects.StockFilters) ([]*entities.Stock, *valueObjects.Pagination, error) {
+func (r *stockRepository) GetAll(ctx context.Context, filters valueObjects.StockFilters) ([]*model.Stock, *valueObjects.Pagination, error) {
 	filters.SetDefaults()
 
 	whereClause, args := r.buildWhereClause(filters)
@@ -121,9 +121,9 @@ func (r *stockRepository) GetAll(ctx context.Context, filters valueObjects.Stock
 	}
 	defer rows.Close()
 
-	var stocks []*entities.Stock
+	var stocks []*model.Stock
 	for rows.Next() {
-		stock := &entities.Stock{}
+		stock := &model.Stock{}
 		err := rows.Scan(
 			&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
 			&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,
@@ -193,7 +193,7 @@ func (r *stockRepository) buildWhereClause(filters valueObjects.StockFilters) (s
 }
 
 // GetRecentByTickers retrieves recent stock records for all tickers since the given time.
-func (r *stockRepository) GetRecentByTickers(ctx context.Context, since time.Time) (map[string][]*entities.Stock, error) {
+func (r *stockRepository) GetRecentByTickers(ctx context.Context, since time.Time) (map[string][]*model.Stock, error) {
 	query := `
         SELECT s.id, s.ticker, s.company, s.action, s.rating_from, s.rating_to,
                s.target_from, s.target_to, s.event_time, s.price_close, s.created_at, s.updated_at,
@@ -210,10 +210,10 @@ func (r *stockRepository) GetRecentByTickers(ctx context.Context, since time.Tim
 	}
 	defer rows.Close()
 
-	result := make(map[string][]*entities.Stock)
+	result := make(map[string][]*model.Stock)
 
 	for rows.Next() {
-		stock := &entities.Stock{}
+		stock := &model.Stock{}
 		err := rows.Scan(
 			&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
 			&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,
@@ -232,7 +232,7 @@ func (r *stockRepository) GetRecentByTickers(ctx context.Context, since time.Tim
 }
 
 // GetByID retrieves a stock by its ID.
-func (r *stockRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.Stock, error) {
+func (r *stockRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Stock, error) {
 	query := `
         SELECT s.id, s.ticker, s.company, s.action, s.rating_from, s.rating_to,
                s.target_from, s.target_to, s.event_time, s.price_close, s.created_at, s.updated_at,
@@ -242,7 +242,7 @@ func (r *stockRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.
         WHERE s.id = $1
     `
 
-	stock := &entities.Stock{}
+	stock := &model.Stock{}
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
 		&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,
@@ -258,7 +258,7 @@ func (r *stockRepository) GetByID(ctx context.Context, id uuid.UUID) (*entities.
 }
 
 // Update updates an existing stock record.
-func (r *stockRepository) Update(ctx context.Context, stock *entities.Stock) error {
+func (r *stockRepository) Update(ctx context.Context, stock *model.Stock) error {
 	query := `
         UPDATE stocks 
         SET ticker = $2, company = $3, broker_id = $4, action = $5, 
@@ -295,7 +295,7 @@ func (r *stockRepository) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // GetByTicker retrieves all stocks for a specific ticker.
-func (r *stockRepository) GetByTicker(ctx context.Context, ticker string) ([]*entities.Stock, error) {
+func (r *stockRepository) GetByTicker(ctx context.Context, ticker string) ([]*model.Stock, error) {
 	query := `
         SELECT s.id, s.ticker, s.company, s.action, s.rating_from, s.rating_to,
                s.target_from, s.target_to, s.event_time, s.price_close, s.created_at, s.updated_at,
@@ -312,9 +312,9 @@ func (r *stockRepository) GetByTicker(ctx context.Context, ticker string) ([]*en
 	}
 	defer rows.Close()
 
-	var stocks []*entities.Stock
+	var stocks []*model.Stock
 	for rows.Next() {
-		stock := &entities.Stock{}
+		stock := &model.Stock{}
 		err := rows.Scan(
 			&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
 			&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,
@@ -332,7 +332,7 @@ func (r *stockRepository) GetByTicker(ctx context.Context, ticker string) ([]*en
 }
 
 // GetLatestByTicker retrieves the most recent stock record for a specific ticker.
-func (r *stockRepository) GetLatestByTicker(ctx context.Context, ticker string) (*entities.Stock, error) {
+func (r *stockRepository) GetLatestByTicker(ctx context.Context, ticker string) (*model.Stock, error) {
 	query := `
         SELECT s.id, s.ticker, s.company, s.action, s.rating_from, s.rating_to,
                s.target_from, s.target_to, s.event_time, s.price_close, s.created_at, s.updated_at,
@@ -344,7 +344,7 @@ func (r *stockRepository) GetLatestByTicker(ctx context.Context, ticker string) 
         LIMIT 1
     `
 
-	stock := &entities.Stock{}
+	stock := &model.Stock{}
 	err := r.db.QueryRow(ctx, query, ticker).Scan(
 		&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
 		&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,
@@ -360,7 +360,7 @@ func (r *stockRepository) GetLatestByTicker(ctx context.Context, ticker string) 
 }
 
 // BulkUpdate updates multiple stock records in a single transaction.
-func (r *stockRepository) BulkUpdate(ctx context.Context, stocks []*entities.Stock) error {
+func (r *stockRepository) BulkUpdate(ctx context.Context, stocks []*model.Stock) error {
 	if len(stocks) == 0 {
 		return nil
 	}
@@ -400,7 +400,7 @@ func (r *stockRepository) BulkUpdate(ctx context.Context, stocks []*entities.Sto
 }
 
 // GetTopMoversByTarget retrieves stocks with the highest target price changes.
-func (r *stockRepository) GetTopMoversByTarget(ctx context.Context, limit int) ([]*entities.Stock, error) {
+func (r *stockRepository) GetTopMoversByTarget(ctx context.Context, limit int) ([]*model.Stock, error) {
 	query := `
         SELECT s.id, s.ticker, s.company, s.action, s.rating_from, s.rating_to,
                s.target_from, s.target_to, s.event_time, s.price_close, s.created_at, s.updated_at,
@@ -418,9 +418,9 @@ func (r *stockRepository) GetTopMoversByTarget(ctx context.Context, limit int) (
 	}
 	defer rows.Close()
 
-	var stocks []*entities.Stock
+	var stocks []*model.Stock
 	for rows.Next() {
-		stock := &entities.Stock{}
+		stock := &model.Stock{}
 		err := rows.Scan(
 			&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
 			&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,
@@ -481,7 +481,7 @@ func (r *stockRepository) GetBrokerageStats(ctx context.Context) ([]repositories
 }
 
 // GetRecentRecommendations gets recent positive recommendations for the recommendation engine
-func (r *stockRepository) GetRecentRecommendations(ctx context.Context, since time.Time, limit int) ([]*entities.Stock, error) {
+func (r *stockRepository) GetRecentRecommendations(ctx context.Context, since time.Time, limit int) ([]*model.Stock, error) {
 	query := `
 		SELECT s.id, s.ticker, s.company, s.action, s.rating_from, s.rating_to,
 		       s.target_from, s.target_to, s.event_time, s.price_close, s.created_at, s.updated_at,
@@ -500,9 +500,9 @@ func (r *stockRepository) GetRecentRecommendations(ctx context.Context, since ti
 	}
 	defer rows.Close()
 
-	var stocks []*entities.Stock
+	var stocks []*model.Stock
 	for rows.Next() {
-		stock := &entities.Stock{}
+		stock := &model.Stock{}
 		err := rows.Scan(
 			&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
 			&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,

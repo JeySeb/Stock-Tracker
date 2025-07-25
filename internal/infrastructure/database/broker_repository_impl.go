@@ -3,7 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
-	"stock-tracker/internal/domain/entities"
+	"stock-tracker/internal/domain/model"
 	"stock-tracker/internal/domain/repositories"
 
 	"github.com/google/uuid"
@@ -18,7 +18,7 @@ func NewBrokerRepository(db *pgxpool.Pool) repositories.BrokerRepository {
 	return &BrokerRepositoryImpl{db: db}
 }
 
-func (r *BrokerRepositoryImpl) Create(ctx context.Context, broker *entities.Broker) error {
+func (r *BrokerRepositoryImpl) Create(ctx context.Context, broker *model.Broker) error {
 	query := `
 		INSERT INTO brokers (id, name, credibility_score, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5)
@@ -36,13 +36,13 @@ func (r *BrokerRepositoryImpl) Create(ctx context.Context, broker *entities.Brok
 	return nil
 }
 
-func (r *BrokerRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entities.Broker, error) {
+func (r *BrokerRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*model.Broker, error) {
 	query := `
 		SELECT id, name, credibility_score, created_at, updated_at
 		FROM brokers WHERE id = $1
 	`
 
-	broker := &entities.Broker{}
+	broker := &model.Broker{}
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&broker.ID, &broker.Name, &broker.CredibilityScore,
 		&broker.CreatedAt, &broker.UpdatedAt,
@@ -55,13 +55,13 @@ func (r *BrokerRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*enti
 	return broker, nil
 }
 
-func (r *BrokerRepositoryImpl) GetByName(ctx context.Context, name string) (*entities.Broker, error) {
+func (r *BrokerRepositoryImpl) GetByName(ctx context.Context, name string) (*model.Broker, error) {
 	query := `
 		SELECT id, name, credibility_score, created_at, updated_at
 		FROM brokers WHERE name = $1
 	`
 
-	broker := &entities.Broker{}
+	broker := &model.Broker{}
 	err := r.db.QueryRow(ctx, query, name).Scan(
 		&broker.ID, &broker.Name, &broker.CredibilityScore,
 		&broker.CreatedAt, &broker.UpdatedAt,
@@ -74,7 +74,7 @@ func (r *BrokerRepositoryImpl) GetByName(ctx context.Context, name string) (*ent
 	return broker, nil
 }
 
-func (r *BrokerRepositoryImpl) GetAll(ctx context.Context) ([]*entities.Broker, error) {
+func (r *BrokerRepositoryImpl) GetAll(ctx context.Context) ([]*model.Broker, error) {
 	query := `
 		SELECT id, name, credibility_score, created_at, updated_at
 		FROM brokers ORDER BY name
@@ -86,9 +86,9 @@ func (r *BrokerRepositoryImpl) GetAll(ctx context.Context) ([]*entities.Broker, 
 	}
 	defer rows.Close()
 
-	var brokers []*entities.Broker
+	var brokers []*model.Broker
 	for rows.Next() {
-		broker := &entities.Broker{}
+		broker := &model.Broker{}
 		err := rows.Scan(
 			&broker.ID, &broker.Name, &broker.CredibilityScore,
 			&broker.CreatedAt, &broker.UpdatedAt,
@@ -102,7 +102,7 @@ func (r *BrokerRepositoryImpl) GetAll(ctx context.Context) ([]*entities.Broker, 
 	return brokers, nil
 }
 
-func (r *BrokerRepositoryImpl) Update(ctx context.Context, broker *entities.Broker) error {
+func (r *BrokerRepositoryImpl) Update(ctx context.Context, broker *model.Broker) error {
 	query := `
 		UPDATE brokers 
 		SET name = $2, credibility_score = $3, updated_at = $4
@@ -131,7 +131,7 @@ func (r *BrokerRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error {
 	return nil
 }
 
-func (r *BrokerRepositoryImpl) UpsertByName(ctx context.Context, broker *entities.Broker) error {
+func (r *BrokerRepositoryImpl) UpsertByName(ctx context.Context, broker *model.Broker) error {
 	query := `
 		INSERT INTO brokers (id, name, credibility_score, created_at, updated_at)
 		VALUES ($1, $2, $3, $4, $5)

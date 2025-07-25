@@ -1,7 +1,7 @@
 package mocks
 
 import (
-	"stock-tracker/internal/domain/entities"
+	"stock-tracker/internal/domain/model"
 	"stock-tracker/internal/infrastructure/auth"
 
 	"github.com/stretchr/testify/mock"
@@ -11,7 +11,7 @@ type MockJWTService struct {
 	mock.Mock
 }
 
-func (m *MockJWTService) GenerateTokenPair(user *entities.User) (*auth.TokenPair, error) {
+func (m *MockJWTService) GenerateTokenPair(user *model.User) (*auth.TokenPair, error) {
 	args := m.Called(user)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)

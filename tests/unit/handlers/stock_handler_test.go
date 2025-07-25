@@ -13,8 +13,8 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"stock-tracker/internal/domain/entities"
-	"stock-tracker/internal/domain/valueObjects"
+	"stock-tracker/internal/domain/model"
+	"stock-tracker/internal/domain/authentication/validation"
 	"stock-tracker/internal/presentation/handlers"
 	"stock-tracker/tests/mocks"
 )
@@ -44,7 +44,7 @@ func TestStockHandler_GetStocks_Success(t *testing.T) {
 	mockLogger := &mocks.MockLogger{}
 	handler := handlers.NewStockHandler(mockUseCase, mockLogger)
 
-	testStocks := []entities.Stock{
+	testStocks := []model.Stock{
 		{
 			Ticker:  "AAPL",
 			Company: "Apple Inc.",
@@ -100,7 +100,7 @@ func TestStockHandler_GetStocks_WithFilters(t *testing.T) {
 			filters.SortOrder == "desc" &&
 			filters.Limit == 20 &&
 			filters.Offset == 10
-	})).Return([]entities.Stock{}, &valueObjects.Pagination{}, nil)
+	})).Return([]model.Stock{}, &valueObjects.Pagination{}, nil)
 
 	req := httptest.NewRequest("GET", "/stocks?ticker=AAPL&company=Apple&brokerage=Goldman&action=upgraded&sort_by=event_time&sort_order=desc&limit=20&offset=10", nil)
 	w := httptest.NewRecorder()
@@ -124,7 +124,7 @@ func TestStockHandler_GetStocks_DefaultFilters(t *testing.T) {
 		return filters.Limit == 50 && // Default limit
 			filters.SortBy == "event_time" && // Default sort
 			filters.SortOrder == "desc" // Default order
-	})).Return([]entities.Stock{}, &valueObjects.Pagination{}, nil)
+	})).Return([]model.Stock{}, &valueObjects.Pagination{}, nil)
 
 	req := httptest.NewRequest("GET", "/stocks", nil)
 	w := httptest.NewRecorder()
@@ -174,7 +174,7 @@ func TestStockHandler_GetStockByTicker_Success(t *testing.T) {
 	mockLogger := &mocks.MockLogger{}
 	handler := handlers.NewStockHandler(mockUseCase, mockLogger)
 
-	testStocks := []entities.Stock{
+	testStocks := []model.Stock{
 		{
 			Ticker:  "AAPL",
 			Company: "Apple Inc.",
@@ -391,7 +391,7 @@ func TestStockHandler_ParseFilters(t *testing.T) {
 					filters.SortOrder == tc.expected.SortOrder &&
 					filters.Limit == tc.expected.Limit &&
 					filters.Offset == tc.expected.Offset
-			})).Return([]entities.Stock{}, &valueObjects.Pagination{}, nil)
+			})).Return([]model.Stock{}, &valueObjects.Pagination{}, nil)
 
 			req := httptest.NewRequest("GET", "/stocks?"+tc.query, nil)
 			w := httptest.NewRecorder()
@@ -477,7 +477,7 @@ func TestStockHandler_Integration(t *testing.T) {
 		r.Get("/stats", handler.GetStats)
 	})
 
-	testStocks := []entities.Stock{
+	testStocks := []model.Stock{
 		{Ticker: "AAPL", Company: "Apple Inc."},
 	}
 

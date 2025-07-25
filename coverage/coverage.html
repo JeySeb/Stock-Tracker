@@ -3,7 +3,7 @@
 <html>
 	<head>
 		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-		<title>entities: Go Coverage Report</title>
+		<title>model: Go Coverage Report</title>
 		<style>
 			body {
 				background: black;
@@ -55,11 +55,11 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">stock-tracker/internal/domain/entities/broker.go (100.0%)</option>
+				<option value="file0">stock-tracker/internal/domain/model/broker.go (100.0%)</option>
 				
-				<option value="file1">stock-tracker/internal/domain/entities/ingestion_log.go (0.0%)</option>
+				<option value="file1">stock-tracker/internal/domain/model/ingestion_log.go (0.0%)</option>
 				
-				<option value="file2">stock-tracker/internal/domain/entities/stock.go (100.0%)</option>
+				<option value="file2">stock-tracker/internal/domain/model/stock.go (100.0%)</option>
 				
 				<option value="file3">stock-tracker/internal/domain/repositories/broker_repository_impl.go (0.0%)</option>
 				
@@ -85,7 +85,7 @@
 		</div>
 		<div id="content">
 		
-		<pre class="file" id="file0" style="display: none">package entities
+		<pre class="file" id="file0" style="display: none">package model
 
 import (
         "time"
@@ -111,7 +111,7 @@ func NewBroker(name string, credibilityScore float64) *Broker <span class="cov8"
         }
 }</pre>
 		
-		<pre class="file" id="file1" style="display: none">package entities
+		<pre class="file" id="file1" style="display: none">package model
 
 import (
         "time"
@@ -163,7 +163,7 @@ func (il *IngestionLog) Fail(errorDetails map[string]interface{}) <span class="c
         il.CompletedAt = &amp;now
 }</pre>
 		
-		<pre class="file" id="file2" style="display: none">package entities
+		<pre class="file" id="file2" style="display: none">package model
 
 import (
         "strings"
@@ -280,7 +280,7 @@ func (s *Stock) IsRecommendation() bool <span class="cov8" title="1">{
 
 import (
         "context"
-        "stock-tracker/internal/domain/entities"
+        "stock-tracker/internal/domain/model"
 
         "github.com/google/uuid"
         "github.com/jackc/pgx/v5/pgxpool"
@@ -294,27 +294,27 @@ func NewBrokerRepository(db *pgxpool.Pool) BrokerRepository <span class="cov0" t
         return &amp;BrokerRepositoryImpl{db: db}
 }</span>
 
-func (r *BrokerRepositoryImpl) Create(ctx context.Context, broker *entities.Broker) error <span class="cov0" title="0">{
+func (r *BrokerRepositoryImpl) Create(ctx context.Context, broker *model.Broker) error <span class="cov0" title="0">{
         // Placeholder implementation
         return nil
 }</span>
 
-func (r *BrokerRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entities.Broker, error) <span class="cov0" title="0">{
+func (r *BrokerRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*model.Broker, error) <span class="cov0" title="0">{
         // Placeholder implementation
         return nil, nil
 }</span>
 
-func (r *BrokerRepositoryImpl) GetByName(ctx context.Context, name string) (*entities.Broker, error) <span class="cov0" title="0">{
+func (r *BrokerRepositoryImpl) GetByName(ctx context.Context, name string) (*model.Broker, error) <span class="cov0" title="0">{
         // Placeholder implementation
         return nil, nil
 }</span>
 
-func (r *BrokerRepositoryImpl) GetAll(ctx context.Context) ([]*entities.Broker, error) <span class="cov0" title="0">{
+func (r *BrokerRepositoryImpl) GetAll(ctx context.Context) ([]*model.Broker, error) <span class="cov0" title="0">{
         // Placeholder implementation
         return nil, nil
 }</span>
 
-func (r *BrokerRepositoryImpl) Update(ctx context.Context, broker *entities.Broker) error <span class="cov0" title="0">{
+func (r *BrokerRepositoryImpl) Update(ctx context.Context, broker *model.Broker) error <span class="cov0" title="0">{
         // Placeholder implementation
         return nil
 }</span>
@@ -324,7 +324,7 @@ func (r *BrokerRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error <
         return nil
 }</span>
 
-func (r *BrokerRepositoryImpl) UpsertByName(ctx context.Context, broker *entities.Broker) error <span class="cov0" title="0">{
+func (r *BrokerRepositoryImpl) UpsertByName(ctx context.Context, broker *model.Broker) error <span class="cov0" title="0">{
         // Placeholder implementation
         return nil
 }</span>
@@ -335,8 +335,8 @@ func (r *BrokerRepositoryImpl) UpsertByName(ctx context.Context, broker *entitie
 import (
         "context"
         "database/sql"
-        "stock-tracker/internal/domain/entities"
-        "stock-tracker/internal/domain/valueObjects"
+        "stock-tracker/internal/domain/model"
+        "stock-tracker/internal/domain/authentication/validation"
         "time"
 
         "github.com/google/uuid"
@@ -350,17 +350,17 @@ func NewStockRepository(db *sql.DB) StockRepository <span class="cov0" title="0"
         return &amp;StockRepositoryImpl{db: db}
 }</span>
 
-func (r *StockRepositoryImpl) Create(ctx context.Context, stock *entities.Stock) error <span class="cov0" title="0">{
+func (r *StockRepositoryImpl) Create(ctx context.Context, stock *model.Stock) error <span class="cov0" title="0">{
         // Placeholder implementation
         return nil
 }</span>
 
-func (r *StockRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*entities.Stock, error) <span class="cov0" title="0">{
+func (r *StockRepositoryImpl) GetByID(ctx context.Context, id uuid.UUID) (*model.Stock, error) <span class="cov0" title="0">{
         // Placeholder implementation
         return nil, nil
 }</span>
 
-func (r *StockRepositoryImpl) Update(ctx context.Context, stock *entities.Stock) error <span class="cov0" title="0">{
+func (r *StockRepositoryImpl) Update(ctx context.Context, stock *model.Stock) error <span class="cov0" title="0">{
         // Placeholder implementation
         return nil
 }</span>
@@ -370,37 +370,37 @@ func (r *StockRepositoryImpl) Delete(ctx context.Context, id uuid.UUID) error <s
         return nil
 }</span>
 
-func (r *StockRepositoryImpl) GetByTicker(ctx context.Context, ticker string) ([]*entities.Stock, error) <span class="cov0" title="0">{
+func (r *StockRepositoryImpl) GetByTicker(ctx context.Context, ticker string) ([]*model.Stock, error) <span class="cov0" title="0">{
         // Placeholder implementation
         return nil, nil
 }</span>
 
-func (r *StockRepositoryImpl) GetLatestByTicker(ctx context.Context, ticker string) (*entities.Stock, error) <span class="cov0" title="0">{
+func (r *StockRepositoryImpl) GetLatestByTicker(ctx context.Context, ticker string) (*model.Stock, error) <span class="cov0" title="0">{
         // Placeholder implementation
         return nil, nil
 }</span>
 
-func (r *StockRepositoryImpl) GetAll(ctx context.Context, filters valueObjects.StockFilters) ([]*entities.Stock, *valueObjects.Pagination, error) <span class="cov0" title="0">{
+func (r *StockRepositoryImpl) GetAll(ctx context.Context, filters valueObjects.StockFilters) ([]*model.Stock, *valueObjects.Pagination, error) <span class="cov0" title="0">{
         // Placeholder implementation
         return nil, nil, nil
 }</span>
 
-func (r *StockRepositoryImpl) GetRecentByTickers(ctx context.Context, since time.Time) (map[string][]*entities.Stock, error) <span class="cov0" title="0">{
+func (r *StockRepositoryImpl) GetRecentByTickers(ctx context.Context, since time.Time) (map[string][]*model.Stock, error) <span class="cov0" title="0">{
         // Placeholder implementation
         return nil, nil
 }</span>
 
-func (r *StockRepositoryImpl) BulkCreate(ctx context.Context, stocks []*entities.Stock) error <span class="cov0" title="0">{
+func (r *StockRepositoryImpl) BulkCreate(ctx context.Context, stocks []*model.Stock) error <span class="cov0" title="0">{
         // Placeholder implementation
         return nil
 }</span>
 
-func (r *StockRepositoryImpl) BulkUpdate(ctx context.Context, stocks []*entities.Stock) error <span class="cov0" title="0">{
+func (r *StockRepositoryImpl) BulkUpdate(ctx context.Context, stocks []*model.Stock) error <span class="cov0" title="0">{
         // Placeholder implementation
         return nil
 }</span>
 
-func (r *StockRepositoryImpl) GetTopMoversByTarget(ctx context.Context, limit int) ([]*entities.Stock, error) <span class="cov0" title="0">{
+func (r *StockRepositoryImpl) GetTopMoversByTarget(ctx context.Context, limit int) ([]*model.Stock, error) <span class="cov0" title="0">{
         // Placeholder implementation
         return nil, nil
 }</span>
@@ -426,9 +426,9 @@ import (
         "github.com/google/uuid"
         "golang.org/x/sync/errgroup"
 
-        "stock-tracker/internal/domain/entities"
+        "stock-tracker/internal/domain/model"
         "stock-tracker/internal/domain/repositories"
-        "stock-tracker/internal/domain/valueObjects"
+        "stock-tracker/internal/domain/authentication/validation"
         "stock-tracker/internal/infrastructure/clients"
         "stock-tracker/pkg/logger"
 )
@@ -504,26 +504,26 @@ func (uc *StockIngestionUseCase) IngestStocks(ctx context.Context) error <span c
         return nil</span>
 }
 
-func (uc *StockIngestionUseCase) enrichWithBrokerInfo(ctx context.Context, stocks []*entities.Stock) error <span class="cov8" title="1">{
+func (uc *StockIngestionUseCase) enrichWithBrokerInfo(ctx context.Context, stocks []*model.Stock) error <span class="cov8" title="1">{
         // Get all existing brokers
         brokers, err := uc.brokerRepo.GetAll(ctx)
         if err != nil </span><span class="cov8" title="1">{
                 return fmt.Errorf("failed to get brokers: %w", err)
         }</span>
 
-        <span class="cov8" title="1">brokerMap := make(map[string]*entities.Broker)
+        <span class="cov8" title="1">brokerMap := make(map[string]*model.Broker)
         for _, broker := range brokers </span><span class="cov8" title="1">{
                 brokerMap[broker.Name] = broker
         }</span>
 
         // Create missing brokers and assign IDs
-        <span class="cov8" title="1">var newBrokers []*entities.Broker
+        <span class="cov8" title="1">var newBrokers []*model.Broker
         for _, stock := range stocks </span><span class="cov8" title="1">{
                 if broker, exists := brokerMap[stock.Brokerage]; exists </span><span class="cov8" title="1">{
                         stock.BrokerID = broker.ID
                 }</span> else<span class="cov8" title="1"> {
                         // Create new broker with default credibility score
-                        newBroker := entities.NewBroker(stock.Brokerage, 0.60)
+                        newBroker := model.NewBroker(stock.Brokerage, 0.60)
                         newBrokers = append(newBrokers, newBroker)
                         brokerMap[stock.Brokerage] = newBroker
                         stock.BrokerID = newBroker.ID
@@ -540,7 +540,7 @@ func (uc *StockIngestionUseCase) enrichWithBrokerInfo(ctx context.Context, stock
         <span class="cov8" title="1">return nil</span>
 }
 
-func (uc *StockIngestionUseCase) processStocksInBatches(ctx context.Context, eg *errgroup.Group, stocks []*entities.Stock) error <span class="cov8" title="1">{
+func (uc *StockIngestionUseCase) processStocksInBatches(ctx context.Context, eg *errgroup.Group, stocks []*model.Stock) error <span class="cov8" title="1">{
         batches := uc.createBatches(stocks)
 
         for i, batch := range batches </span><span class="cov8" title="1">{
@@ -576,8 +576,8 @@ func (uc *StockIngestionUseCase) GetStocksByTicker(ctx context.Context, ticker s
         return []interface{}{}, nil
 }</span>
 
-func (uc *StockIngestionUseCase) createBatches(stocks []*entities.Stock) [][]*entities.Stock <span class="cov8" title="1">{
-        var batches [][]*entities.Stock
+func (uc *StockIngestionUseCase) createBatches(stocks []*model.Stock) [][]*model.Stock <span class="cov8" title="1">{
+        var batches [][]*model.Stock
 
         for i := 0; i &lt; len(stocks); i += uc.batchSize </span><span class="cov8" title="1">{
                 end := i + uc.batchSize
@@ -590,7 +590,7 @@ func (uc *StockIngestionUseCase) createBatches(stocks []*entities.Stock) [][]*en
         <span class="cov8" title="1">return batches</span>
 }
 
-func (uc *StockIngestionUseCase) processBatch(ctx context.Context, batch []*entities.Stock, batchNum int) error <span class="cov8" title="1">{
+func (uc *StockIngestionUseCase) processBatch(ctx context.Context, batch []*model.Stock, batchNum int) error <span class="cov8" title="1">{
         uc.logger.Info("Processing batch", "batch_num", batchNum, "size", len(batch))
 
         startTime := time.Now()
@@ -692,7 +692,7 @@ import (
         "strings"
         "time"
 
-        "stock-tracker/internal/domain/entities"
+        "stock-tracker/internal/domain/model"
         "stock-tracker/pkg/logger"
 
         "github.com/hashicorp/go-retryablehttp"
@@ -716,8 +716,8 @@ type StockAPIItem struct {
 }
 
 type StockAPIClient interface {
-        FetchAllStocks(ctx context.Context) ([]*entities.Stock, error)
-        FetchPage(ctx context.Context, nextPage string) ([]*entities.Stock, string, error)
+        FetchAllStocks(ctx context.Context) ([]*model.Stock, error)
+        FetchPage(ctx context.Context, nextPage string) ([]*model.Stock, string, error)
 }
 
 type stockAPIClient struct {
@@ -744,8 +744,8 @@ func NewStockAPIClient(baseURL, apiKey string, logger logger.Logger) StockAPICli
         }
 }</span>
 
-func (c *stockAPIClient) FetchAllStocks(ctx context.Context) ([]*entities.Stock, error) <span class="cov0" title="0">{
-        var allStocks []*entities.Stock
+func (c *stockAPIClient) FetchAllStocks(ctx context.Context) ([]*model.Stock, error) <span class="cov0" title="0">{
+        var allStocks []*model.Stock
         nextPage := ""
         pageCount := 0
 
@@ -782,7 +782,7 @@ func (c *stockAPIClient) FetchAllStocks(ctx context.Context) ([]*entities.Stock,
         return allStocks, nil</span>
 }
 
-func (c *stockAPIClient) FetchPage(ctx context.Context, nextPage string) ([]*entities.Stock, string, error) <span class="cov0" title="0">{
+func (c *stockAPIClient) FetchPage(ctx context.Context, nextPage string) ([]*model.Stock, string, error) <span class="cov0" title="0">{
         url := c.baseURL
         if nextPage != "" </span><span class="cov0" title="0">{
                 url += "?next_page=" + nextPage
@@ -813,7 +813,7 @@ func (c *stockAPIClient) FetchPage(ctx context.Context, nextPage string) ([]*ent
                 return nil, "", fmt.Errorf("failed to decode response: %w", err)
         }</span>
 
-        <span class="cov0" title="0">stocks := make([]*entities.Stock, 0, len(apiResponse.Items))
+        <span class="cov0" title="0">stocks := make([]*model.Stock, 0, len(apiResponse.Items))
         for _, item := range apiResponse.Items </span><span class="cov0" title="0">{
                 stock, err := c.convertAPIItemToStock(item)
                 if err != nil </span><span class="cov0" title="0">{
@@ -824,14 +824,14 @@ func (c *stockAPIClient) FetchPage(ctx context.Context, nextPage string) ([]*ent
         <span class="cov0" title="0">return stocks, apiResponse.NextPage, nil</span>
 }
 
-func (c *stockAPIClient) convertAPIItemToStock(item StockAPIItem) (*entities.Stock, error) <span class="cov0" title="0">{
+func (c *stockAPIClient) convertAPIItemToStock(item StockAPIItem) (*model.Stock, error) <span class="cov0" title="0">{
 
         eventTime, err := time.Parse(time.RFC3339, item.Time)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to parse event time %s: %w", item.Time, err)
         }</span>
 
-        <span class="cov0" title="0">stock := entities.NewStock(item.Ticker, item.Company, item.Brokerage, item.Action, eventTime)
+        <span class="cov0" title="0">stock := model.NewStock(item.Ticker, item.Company, item.Brokerage, item.Action, eventTime)
         stock.RatingFrom = item.RatingFrom
         stock.RatingTo = item.RatingTo
 
@@ -872,7 +872,7 @@ import (
         "strconv"
 
         "stock-tracker/internal/domain/usecases"
-        "stock-tracker/internal/domain/valueObjects"
+        "stock-tracker/internal/domain/authentication/validation"
         "stock-tracker/pkg/logger"
 
         "github.com/go-chi/chi/v5"
