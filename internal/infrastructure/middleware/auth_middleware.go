@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	"stock-tracker/internal/domain/model"
+	authModel "stock-tracker/internal/domain/authentication/model"
 	"stock-tracker/internal/infrastructure/auth"
 	"stock-tracker/pkg/logger"
 
@@ -69,7 +69,7 @@ func (m *AuthMiddleware) RequirePremium(next http.Handler) http.Handler {
 			return
 		}
 
-		if claims.Tier != model.UserTier("premium") {
+		if claims.Tier != enums.UserTier("premium") {
 			m.logger.Info("Non-premium user attempted to access premium feature",
 				"user_id", claims.UserID,
 				"tier", claims.Tier,
@@ -96,7 +96,7 @@ func (m *AuthMiddleware) OptionalAuth(next http.Handler) http.Handler {
 			r = r.WithContext(ctx)
 		} else {
 			// Set guest tier for non-authenticated users
-			ctx := context.WithValue(r.Context(), UserTierContextKey, model.UserTier("guest"))
+			ctx := context.WithValue(r.Context(), UserTierContextKey, enums.UserTier("guest"))
 			r = r.WithContext(ctx)
 		}
 

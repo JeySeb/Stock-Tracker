@@ -8,16 +8,16 @@ import (
 	"github.com/google/uuid"
 	"golang.org/x/sync/errgroup"
 
-	"stock-tracker/internal/domain/model"
-	"stock-tracker/internal/domain/repositories"
-	"stock-tracker/internal/domain/authentication/validation"
+	stockModel "stock-tracker/internal/domain/stocks/model"
+	stockRepos "stock-tracker/internal/domain/stocks/repositories"
+	stockValidation "stock-tracker/internal/domain/stocks/validation"
 	"stock-tracker/internal/infrastructure/clients"
 	"stock-tracker/pkg/logger"
 )
 
 type StockIngestionUseCase struct {
-	stockRepo   repositories.StockRepository
-	brokerRepo  repositories.BrokerRepository
+	stockRepo   stockRepos.StockRepository
+	brokerRepo  stockRepos.BrokerRepository
 	apiClient   clients.StockAPIClient
 	logger      logger.Logger
 	batchSize   int
@@ -25,8 +25,8 @@ type StockIngestionUseCase struct {
 }
 
 func NewStockIngestionUseCase(
-	stockRepo repositories.StockRepository,
-	brokerRepo repositories.BrokerRepository,
+	stockRepo stockRepos.StockRepository,
+	brokerRepo stockRepos.BrokerRepository,
 	apiClient clients.StockAPIClient,
 	logger logger.Logger,
 ) *StockIngestionUseCase {
@@ -86,26 +86,26 @@ func (uc *StockIngestionUseCase) IngestStocks(ctx context.Context) error {
 	return nil
 }
 
-func (uc *StockIngestionUseCase) enrichWithBrokerInfo(ctx context.Context, stocks []*model.Stock) error {
+func (uc *StockIngestionUseCase) enrichWithBrokerInfo(ctx context.Context, stocks []*stockModel.Stock) error {
 	// Get all existing brokers
 	brokers, err := uc.brokerRepo.GetAll(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to get brokers: %w", err)
 	}
 
-	brokerMap := make(map[string]*model.Broker)
+	brokerMap := make(map[string]*stockModel.Broker)
 	for _, broker := range brokers {
 		brokerMap[broker.Name] = broker
 	}
 
 	// Create missing brokers and assign IDs
-	var newBrokers []*model.Broker
+	var newBrokers []*stockModel.Broker
 	for _, stock := range stocks {
 		if broker, exists := brokerMap[stock.Brokerage]; exists {
 			stock.BrokerID = broker.ID
 		} else {
 			// Create new broker with default credibility score
-			newBroker := model.NewBroker(stock.Brokerage, 0.60)
+			newBroker := stockModel.NewBroker(stock.Brokerage, 0.60)
 			newBrokers = append(newBrokers, newBroker)
 			brokerMap[stock.Brokerage] = newBroker
 			stock.BrokerID = newBroker.ID
@@ -122,7 +122,7 @@ func (uc *StockIngestionUseCase) enrichWithBrokerInfo(ctx context.Context, stock
 	return nil
 }
 
-func (uc *StockIngestionUseCase) processStocksInBatches(ctx context.Context, eg *errgroup.Group, stocks []*model.Stock) error {
+func (uc *StockIngestionUseCase) processStocksInBatches(ctx context.Context, eg *errgroup.Group, stocks []*stockModel.Stock) error {
 	batches := uc.createBatches(stocks)
 
 	for i, batch := range batches {
@@ -142,7 +142,7 @@ func (uc *StockIngestionUseCase) GetStats(ctx context.Context) (interface{}, err
 	uc.logger.Info("Getting stock statistics")
 
 	// Get a count by querying with an empty filter
-	filters := validation.StockFilters{}
+	filters := stockValidation.StockFilters{}
 	filters.SetDefaults()
 	filters.Limit = 1 // We only need the count, not the actual data
 
@@ -162,7 +162,7 @@ func (uc *StockIngestionUseCase) GetStats(ctx context.Context) (interface{}, err
 }
 
 // GetStocks returns stocks with pagination
-func (uc *StockIngestionUseCase) GetStocks(ctx context.Context, filters valueObjects.StockFilters) (interface{}, *valueObjects.Pagination, error) {
+func (uc *StockIngestionUseCase) GetStocks(ctx context.Context, filters stockValidation.StockFilters) (interface{}, *stockValidation.Pagination, error) {
 	uc.logger.Info("Getting stocks with filters", "filters", filters)
 
 	stocks, pagination, err := uc.stockRepo.GetAll(ctx, filters)
@@ -189,8 +189,8 @@ func (uc *StockIngestionUseCase) GetStocksByTicker(ctx context.Context, ticker s
 	return stocks, nil
 }
 
-func (uc *StockIngestionUseCase) createBatches(stocks []*model.Stock) [][]*model.Stock {
-	var batches [][]*model.Stock
+func (uc *StockIngestionUseCase) createBatches(stocks []*stockModel.Stock) [][]*stockModel.Stock {
+	var batches [][]*stockModel.Stock
 
 	for i := 0; i < len(stocks); i += uc.batchSize {
 		end := i + uc.batchSize
@@ -203,7 +203,7 @@ func (uc *StockIngestionUseCase) createBatches(stocks []*model.Stock) [][]*model
 	return batches
 }
 
-func (uc *StockIngestionUseCase) processBatch(ctx context.Context, batch []*model.Stock, batchNum int) error {
+func (uc *StockIngestionUseCase) processBatch(ctx context.Context, batch []*stockModel.Stock, batchNum int) error {
 	uc.logger.Info("Processing batch", "batch_num", batchNum, "size", len(batch))
 
 	startTime := time.Now()

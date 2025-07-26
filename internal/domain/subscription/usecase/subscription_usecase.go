@@ -5,22 +5,24 @@ import (
 	"fmt"
 	"time"
 
-	"stock-tracker/internal/domain/model"
-	"stock-tracker/internal/domain/repositories"
+	authRepos "stock-tracker/internal/domain/authentication/repositories"
+	"stock-tracker/internal/domain/shared/enums"
+	subscriptionModel "stock-tracker/internal/domain/subscription/model"
+	subscriptionRepos "stock-tracker/internal/domain/subscription/repositories"
 	"stock-tracker/pkg/logger"
 
 	"github.com/google/uuid"
 )
 
 type SubscriptionUseCase struct {
-	subscriptionRepo repositories.SubscriptionRepository
-	userRepo         repositories.UserRepository
+	subscriptionRepo subscriptionRepos.SubscriptionRepository
+	userRepo         authRepos.UserRepository
 	logger           logger.Logger
 }
 
 func NewSubscriptionUseCase(
-	subscriptionRepo repositories.SubscriptionRepository,
-	userRepo repositories.UserRepository,
+	subscriptionRepo subscriptionRepos.SubscriptionRepository,
+	userRepo authRepos.UserRepository,
 	logger logger.Logger,
 ) *SubscriptionUseCase {
 	return &SubscriptionUseCase{
@@ -31,10 +33,10 @@ func NewSubscriptionUseCase(
 }
 
 type PaymentSimulationRequest struct {
-	Plan model.SubscriptionPlan `json:"plan" validate:"required,oneof=monthly yearly"`
+	Plan enums.SubscriptionPlan `json:"plan" validate:"required,oneof=monthly yearly"`
 }
 
-func (uc *SubscriptionUseCase) CreateSubscription(ctx context.Context, userID uuid.UUID, req PaymentSimulationRequest) (*model.Subscription, error) {
+func (uc *SubscriptionUseCase) CreateSubscription(ctx context.Context, userID uuid.UUID, req PaymentSimulationRequest) (*subscriptionModel.Subscription, error) {
 	// Validate user exists
 	_, err := uc.userRepo.GetByID(ctx, userID)
 	if err != nil {
@@ -50,7 +52,7 @@ func (uc *SubscriptionUseCase) CreateSubscription(ctx context.Context, userID uu
 	}
 
 	// Create subscription
-	subscription := model.NewSubscription(userID, req.Plan)
+	subscription := subscriptionModel.NewSubscription(userID, req.Plan)
 	if err := uc.subscriptionRepo.Create(ctx, subscription); err != nil {
 		uc.logger.Error("Failed to create subscription", "error", err, "user_id", userID)
 		return nil, fmt.Errorf("failed to create subscription: %w", err)
@@ -72,7 +74,7 @@ func (uc *SubscriptionUseCase) SimulatePayment(ctx context.Context, subscription
 	}
 
 	// Validate subscription status
-	if subscription.Status != model.SUB_STATUS_PENDING {
+	if subscription.Status != enums.STATUS_PENDING {
 		uc.logger.Info("Invalid subscription status for payment",
 			"subscription_id", subscriptionID,
 			"status", subscription.Status)
@@ -98,7 +100,7 @@ func (uc *SubscriptionUseCase) SimulatePayment(ctx context.Context, subscription
 		return fmt.Errorf("failed to get user: %w", err)
 	}
 
-	user.Tier = model.TIER_PREMIUM
+	user.Tier = enums.TIER_PREMIUM
 	user.SetUpdatedAt(time.Now())
 
 	if err := uc.userRepo.Update(ctx, user); err != nil {

@@ -4,24 +4,25 @@ import (
 	"context"
 	"fmt"
 
-	"stock-tracker/internal/model/model"
-	"stock-tracker/internal/model/repositories"
+	authModel "stock-tracker/internal/domain/authentication/model"
+	authRepos "stock-tracker/internal/domain/authentication/repositories"
+	subscriptionRepos "stock-tracker/internal/domain/subscription/repositories"
 	"stock-tracker/internal/infrastructure/auth"
 	"stock-tracker/pkg/logger"
 )
 
 type UserUseCase struct {
-	userRepo         repositories.UserRepository
-	subscriptionRepo repositories.SubscriptionRepository
-	sessionRepo      repositories.SessionRepository
+	userRepo         authRepos.UserRepository
+	subscriptionRepo subscriptionRepos.SubscriptionRepository
+	sessionRepo      authRepos.SessionRepository
 	jwtService       auth.JWTService
 	logger           logger.Logger
 }
 
 func NewUserUseCase(
-	userRepo repositories.UserRepository,
-	subscriptionRepo repositories.SubscriptionRepository,
-	sessionRepo repositories.SessionRepository,
+	userRepo authRepos.UserRepository,
+	subscriptionRepo subscriptionRepos.SubscriptionRepository,
+	sessionRepo authRepos.SessionRepository,
 	jwtService auth.JWTService,
 	logger logger.Logger,
 ) *UserUseCase {
@@ -46,7 +47,7 @@ type LoginRequest struct {
 	Password string `json:"password" validate:"required"`
 }
 
-func (uc *UserUseCase) Register(ctx context.Context, req RegisterRequest) (*model.User, *auth.TokenPair, error) {
+func (uc *UserUseCase) Register(ctx context.Context, req RegisterRequest) (*authModel.User, *auth.TokenPair, error) {
 	// Check if user already exists
 	existingUser, err := uc.userRepo.GetByEmail(ctx, req.Email)
 	if err == nil && existingUser != nil {
@@ -54,7 +55,7 @@ func (uc *UserUseCase) Register(ctx context.Context, req RegisterRequest) (*mode
 	}
 
 	// Create new user
-	user, err := model.NewUser(req.Email, req.Password, req.FirstName, req.LastName)
+	user, err := authModel.NewUser(req.Email, req.Password, req.FirstName, req.LastName)
 	if err != nil {
 		uc.logger.Error("Failed to create user", "error", err)
 		return nil, nil, fmt.Errorf("failed to create user: %w", err)
@@ -73,7 +74,7 @@ func (uc *UserUseCase) Register(ctx context.Context, req RegisterRequest) (*mode
 	}
 
 	// Create session
-	session, err := model.NewSession(user.ID, tokens.RefreshToken, "", "")
+	session, err := authModel.NewSession(user.ID, tokens.RefreshToken, "", "")
 	if err != nil {
 		uc.logger.Error("Failed to create session", "error", err)
 		return nil, nil, fmt.Errorf("failed to create session: %w", err)
@@ -87,7 +88,7 @@ func (uc *UserUseCase) Register(ctx context.Context, req RegisterRequest) (*mode
 	return user, tokens, nil
 }
 
-func (uc *UserUseCase) Login(ctx context.Context, req LoginRequest) (*model.User, *auth.TokenPair, error) {
+func (uc *UserUseCase) Login(ctx context.Context, req LoginRequest) (*authModel.User, *auth.TokenPair, error) {
 	// Get user by email
 	user, err := uc.userRepo.GetByEmail(ctx, req.Email)
 	if err != nil {
@@ -114,7 +115,7 @@ func (uc *UserUseCase) Login(ctx context.Context, req LoginRequest) (*model.User
 	}
 
 	// Create session
-	session, err := model.NewSession(user.ID, tokens.RefreshToken, "", "")
+	session, err := authModel.NewSession(user.ID, tokens.RefreshToken, "", "")
 	if err != nil {
 		uc.logger.Error("Failed to create session", "error", err)
 		return nil, nil, fmt.Errorf("failed to create session: %w", err)
@@ -160,7 +161,7 @@ func (uc *UserUseCase) RefreshToken(ctx context.Context, refreshToken string) (*
 		uc.logger.Warn("Failed to delete old session", "error", err)
 	}
 
-	newSession, err := model.NewSession(user.ID, tokens.RefreshToken, session.UserAgent, session.IPAddress)
+	newSession, err := authModel.NewSession(user.ID, tokens.RefreshToken, session.UserAgent, session.IPAddress)
 	if err != nil {
 		uc.logger.Error("Failed to create new session", "error", err)
 		return nil, fmt.Errorf("failed to create new session: %w", err)

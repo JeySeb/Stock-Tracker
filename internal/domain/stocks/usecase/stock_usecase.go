@@ -2,11 +2,11 @@ package usecases
 
 import (
 	"context"
-	"stock-tracker/internal/domain/authentication/validation"
+	stockValidation "stock-tracker/internal/domain/stocks/validation"
 )
 
 type StockUseCase interface {
-	GetStocks(ctx context.Context, filters validation.StockFilters) (interface{}, *validation.Pagination, error)
+	GetStocks(ctx context.Context, filters stockValidation.StockFilters) (interface{}, *stockValidation.Pagination, error)
 	GetStocksByTicker(ctx context.Context, ticker string) (interface{}, error)
 	GetStats(ctx context.Context) (interface{}, error)
 }

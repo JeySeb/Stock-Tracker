@@ -4,8 +4,8 @@ import (
 	"net/http"
 	"strconv"
 
-	"stock-tracker/internal/domain/usecases"
-	"stock-tracker/internal/domain/authentication/validation"
+	stockUsecases "stock-tracker/internal/domain/stocks/usecases"
+	stockValidation "stock-tracker/internal/domain/stocks/validation"
 	"stock-tracker/pkg/logger"
 
 	"github.com/go-chi/chi/v5"
@@ -13,17 +13,17 @@ import (
 )
 
 type StockHandler struct {
-	stockUC usecases.StockUseCase
+	stockUC stockUsecases.StockUseCase
 	logger  logger.Logger
 }
 
 type StockResponse struct {
 	Data       interface{}              `json:"data"`
-	Pagination *validation.Pagination `json:"pagination,omitempty"`
+	Pagination *stockValidation.Pagination `json:"pagination,omitempty"`
 	Message    string                   `json:"message,omitempty"`
 }
 
-func NewStockHandler(stockUC usecases.StockUseCase, logger logger.Logger) *StockHandler {
+func NewStockHandler(stockUC stockUsecases.StockUseCase, logger logger.Logger) *StockHandler {
 	return &StockHandler{
 		stockUC: stockUC,
 		logger:  logger,
@@ -88,8 +88,8 @@ func (h *StockHandler) GetStats(w http.ResponseWriter, r *http.Request) {
 	render.JSON(w, r, response)
 }
 
-func (h *StockHandler) parseFilters(r *http.Request) validation.StockFilters {
-	filters := validation.StockFilters{
+func (h *StockHandler) parseFilters(r *http.Request) stockValidation.StockFilters {
+	filters := stockValidation.StockFilters{
 		Ticker:    r.URL.Query().Get("ticker"),
 		Company:   r.URL.Query().Get("company"),
 		Brokerage: r.URL.Query().Get("brokerage"),

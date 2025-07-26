@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"context"
-	"stock-tracker/internal/domain/model"
+	authModel "stock-tracker/internal/domain/authentication/model"
 
 	"github.com/google/uuid"
 )
@@ -10,10 +10,10 @@ import (
 // SessionRepository defines the interface for session persistence operations
 type SessionRepository interface {
 	// Create stores a new session in the database
-	Create(ctx context.Context, session *model.Session) error
+	Create(ctx context.Context, session *authModel.Session) error
 
 	// GetByRefreshToken retrieves a session by its refresh token
-	GetByRefreshToken(ctx context.Context, refreshToken string) (*model.Session, error)
+	GetByRefreshToken(ctx context.Context, refreshToken string) (*authModel.Session, error)
 
 	// DeleteByUserID removes all sessions for a given user ID
 	DeleteByUserID(ctx context.Context, userID uuid.UUID) error
@@ -25,5 +25,5 @@ type SessionRepository interface {
 	DeleteByRefreshToken(ctx context.Context, refreshToken string) error
 
 	// GetByUserID retrieves all active sessions for a given user ID
-	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*model.Session, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*authModel.Session, error)
 }

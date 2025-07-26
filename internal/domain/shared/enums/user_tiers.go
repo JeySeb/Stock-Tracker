@@ -50,3 +50,12 @@ func (t UserTier) IsValid() bool {
 func (t UserTier) String() string {
 	return string(t)
 }
+
+// FromString creates a UserTier from a string value
+func FromString(s string) UserTier {
+	tier := UserTier(s)
+	if tier.IsValid() {
+		return tier
+	}
+	return TIER_GUEST
+}

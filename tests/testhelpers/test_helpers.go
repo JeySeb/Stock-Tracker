@@ -3,13 +3,13 @@ package testhelpers
 import (
 	"time"
 
-	"stock-tracker/internal/domain/model"
-	"stock-tracker/internal/domain/authentication/validation"
+	stockModel "stock-tracker/internal/domain/stocks/model"
+	stockValidation "stock-tracker/internal/domain/stocks/validation"
 )
 
 // CreateTestStock creates a stock entity for testing
-func CreateTestStock(ticker, company, brokerage, action string) *model.Stock {
-	stock := model.NewStock(ticker, company, brokerage, action, time.Now())
+func CreateTestStock(ticker, company, brokerage, action string) *stockModel.Stock {
+	stock := stockModel.NewStock(ticker, company, brokerage, action, time.Now())
 	stock.RatingFrom = "Hold"
 	stock.RatingTo = "Buy"
 	stock.TargetFrom = 100.0
@@ -18,13 +18,13 @@ func CreateTestStock(ticker, company, brokerage, action string) *model.Stock {
 }
 
 // CreateTestBroker creates a broker entity for testing
-func CreateTestBroker(name string, credibility float64) *model.Broker {
-	return model.NewBroker(name, credibility)
+func CreateTestBroker(name string, credibility float64) *stockModel.Broker {
+	return stockModel.NewBroker(name, credibility)
 }
 
 // CreateTestStockFilters creates stock filters for testing
-func CreateTestStockFilters() valueObjects.StockFilters {
-	filters := valueObjects.StockFilters{
+func CreateTestStockFilters() stockValidation.StockFilters {
+	filters := stockValidation.StockFilters{
 		Ticker:    "AAPL",
 		Company:   "Apple",
 		Brokerage: "Goldman Sachs",
@@ -39,8 +39,8 @@ func CreateTestStockFilters() valueObjects.StockFilters {
 }
 
 // CreateTestPagination creates pagination for testing
-func CreateTestPagination() *valueObjects.Pagination {
-	return &valueObjects.Pagination{
+func CreateTestPagination() *stockValidation.Pagination {
+	return &stockValidation.Pagination{
 		Page:       1,
 		Limit:      10,
 		TotalItems: 100,
@@ -94,8 +94,8 @@ var TestStockData = []struct {
 }
 
 // CreateTestStocks creates multiple test stocks
-func CreateTestStocks(count int) []*model.Stock {
-	stocks := make([]*model.Stock, 0, count)
+func CreateTestStocks(count int) []*stockModel.Stock {
+	stocks := make([]*stockModel.Stock, 0, count)
 
 	for i := 0; i < count; i++ {
 		dataIndex := i % len(TestStockData)
@@ -119,7 +119,7 @@ func CreateTestStocks(count int) []*model.Stock {
 }
 
 // AssertStockEquals compares two stocks for equality in tests
-func AssertStockEquals(expected, actual *model.Stock) bool {
+func AssertStockEquals(expected, actual *stockModel.Stock) bool {
 	return expected.Ticker == actual.Ticker &&
 		expected.Company == actual.Company &&
 		expected.Brokerage == actual.Brokerage &&

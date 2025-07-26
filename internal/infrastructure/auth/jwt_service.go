@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"time"
 
-	"stock-tracker/internal/domain/model"
-
+	authModel "stock-tracker/internal/domain/authentication/model"
+	"stock-tracker/internal/domain/shared/enums"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 )
@@ -28,12 +28,12 @@ type TokenPair struct {
 type Claims struct {
 	UserID uuid.UUID         `json:"user_id"`
 	Email  string            `json:"email"`
-	Tier   model.UserTier `json:"tier"`
+	Tier   enums.UserTier `json:"tier"`
 	jwt.RegisteredClaims
 }
 
 type JWTService interface {
-	GenerateTokenPair(user *model.User) (*TokenPair, error)
+	GenerateTokenPair(user *authModel.User) (*TokenPair, error)
 	ValidateAccessToken(tokenString string) (*Claims, error)
 	GenerateRefreshToken() (string, error)
 }
@@ -54,7 +54,7 @@ func NewJWTService(secretKey string) JWTService {
 	}
 }
 
-func (s *jwtService) GenerateTokenPair(user *model.User) (*TokenPair, error) {
+func (s *jwtService) GenerateTokenPair(user *authModel.User) (*TokenPair, error) {
 	if user == nil {
 		return nil, fmt.Errorf("%w: user is nil", ErrTokenGeneration)
 	}

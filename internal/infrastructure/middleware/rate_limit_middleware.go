@@ -5,7 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"stock-tracker/internal/domain/model"
+	authModel "stock-tracker/internal/domain/authentication/model"
+	"stock-tracker/internal/domain/shared/enums"
 	"stock-tracker/pkg/logger"
 
 	"github.com/go-chi/render"
@@ -38,14 +39,14 @@ func NewRateLimiter(logger logger.Logger) *RateLimiter {
 func (rl *RateLimiter) RateLimit(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get user tier from context (set by auth middleware)
-		tier, ok := r.Context().Value(UserTierContextKey).(model.UserTier)
+		tier, ok := r.Context().Value(UserTierContextKey).(enums.UserTier)
 		if !ok {
-			tier = model.TIER_GUEST
+			tier = enums.TIER_GUEST
 		}
 
 		// Create identifier (IP + tier for logged users, just IP for guests)
 		identifier := r.RemoteAddr
-		if tier != model.TIER_GUEST {
+		if tier != enums.TIER_GUEST {
 			if userID, ok := r.Context().Value(UserIDContextKey).(uuid.UUID); ok {
 				identifier = userID.String()
 			}
@@ -69,7 +70,7 @@ func (rl *RateLimiter) RateLimit(next http.Handler) http.Handler {
 	})
 }
 
-func (rl *RateLimiter) getLimiter(identifier string, tier model.UserTier) *rate.Limiter {
+func (rl *RateLimiter) getLimiter(identifier string, tier enums.UserTier) *rate.Limiter {
 	rl.mu.Lock()
 	defer rl.mu.Unlock()
 
@@ -78,11 +79,11 @@ func (rl *RateLimiter) getLimiter(identifier string, tier model.UserTier) *rate.
 		// Set rate limits based on user tier
 		var limit rate.Limit
 		switch tier {
-		case model.TIER_GUEST:
+		case enums.TIER_GUEST:
 			limit = rate.Every(36 * time.Second) // ~100 requests per hour
-		case model.TIER_BASIC:
+		case enums.TIER_BASIC:
 			limit = rate.Every(7200 * time.Millisecond) // ~500 requests per hour
-		case model.TIER_PREMIUM:
+		case enums.TIER_PREMIUM:
 			limit = rate.Every(1800 * time.Millisecond) // ~2000 requests per hour
 		default:
 			limit = rate.Every(72 * time.Second) // ~50 requests per hour

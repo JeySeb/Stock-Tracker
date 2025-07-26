@@ -5,20 +5,20 @@ import (
 	"fmt"
 	"time"
 
-	"stock-tracker/internal/domain/repositories"
-	"stock-tracker/internal/domain/authentication/validation"
+	stockRepos "stock-tracker/internal/domain/stocks/repositories"
+	stockValidation "stock-tracker/internal/domain/stocks/validation"
 	"stock-tracker/pkg/logger"
 )
 
 type StockQueryUseCase struct {
-	stockRepo  repositories.StockRepository
-	brokerRepo repositories.BrokerRepository
+	stockRepo  stockRepos.StockRepository
+	brokerRepo stockRepos.BrokerRepository
 	logger     logger.Logger
 }
 
 func NewStockQueryUseCase(
-	stockRepo repositories.StockRepository,
-	brokerRepo repositories.BrokerRepository,
+	stockRepo stockRepos.StockRepository,
+	brokerRepo stockRepos.BrokerRepository,
 	logger logger.Logger,
 ) StockUseCase {
 	return &StockQueryUseCase{
@@ -29,7 +29,7 @@ func NewStockQueryUseCase(
 }
 
 // GetStocks returns stocks with pagination
-func (uc *StockQueryUseCase) GetStocks(ctx context.Context, filters validation.StockFilters) (interface{}, *validation.Pagination, error) {
+func (uc *StockQueryUseCase) GetStocks(ctx context.Context, filters stockValidation.StockFilters) (interface{}, *stockValidation.Pagination, error) {
 	uc.logger.Info("Getting stocks with filters", "filters", filters)
 
 	stocks, pagination, err := uc.stockRepo.GetAll(ctx, filters)
@@ -61,7 +61,7 @@ func (uc *StockQueryUseCase) GetStats(ctx context.Context) (interface{}, error) 
 	uc.logger.Info("Getting stock statistics")
 
 	// Get a count by querying with an empty filter
-	filters := valueObjects.StockFilters{}
+	filters := stockValidation.StockFilters{}
 	filters.SetDefaults()
 	filters.Limit = 1 // We only need the count, not the actual data
 

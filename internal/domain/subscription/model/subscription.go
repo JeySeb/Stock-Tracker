@@ -10,21 +10,21 @@ import (
 
 // Subscription represents a user's subscription details
 type Subscription struct {
-	ID               uuid.UUID          `json:"id" db:"id"`
-	UserID           uuid.UUID          `json:"user_id" db:"user_id" validate:"required"`
-	Plan             SubscriptionPlan   `json:"plan" db:"plan" validate:"required"`
+	ID               uuid.UUID                `json:"id" db:"id"`
+	UserID           uuid.UUID                `json:"user_id" db:"user_id" validate:"required"`
+	Plan             enums.SubscriptionPlan   `json:"plan" db:"plan" validate:"required"`
 	Status           enums.SubscriptionStatus `json:"status" db:"status"`
-	Price            float64            `json:"price" db:"price"`
-	Currency         string             `json:"currency" db:"currency"`
-	StartDate        time.Time          `json:"start_date" db:"start_date"`
-	EndDate          time.Time          `json:"end_date" db:"end_date"`
-	PaymentReference string             `json:"payment_reference" db:"payment_reference"`
-	CreatedAt        time.Time          `json:"created_at" db:"created_at"`
-	UpdatedAt        time.Time          `json:"updated_at" db:"updated_at"`
+	Price            float64                  `json:"price" db:"price"`
+	Currency         string                   `json:"currency" db:"currency"`
+	StartDate        time.Time                `json:"start_date" db:"start_date"`
+	EndDate          time.Time                `json:"end_date" db:"end_date"`
+	PaymentReference string                   `json:"payment_reference" db:"payment_reference"`
+	CreatedAt        time.Time                `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time                `json:"updated_at" db:"updated_at"`
 }
 
 // NewSubscription creates a new subscription instance
-func NewSubscription(userID uuid.UUID, plan SubscriptionPlan) *Subscription {
+func NewSubscription(userID uuid.UUID, plan enums.SubscriptionPlan) *Subscription {
 	now := time.Now()
 	var endDate time.Time
 	var price float64
@@ -32,14 +32,14 @@ func NewSubscription(userID uuid.UUID, plan SubscriptionPlan) *Subscription {
 	switch plan {
 	case enums.PLAN_MONTHLY:
 		endDate = now.AddDate(0, 1, 0) // 1 month
-		price = enums.PRICE_MONTHLY
+		price = float64(enums.PRICE_MONTHLY)
 	case enums.PLAN_YEARLY:
 		endDate = now.AddDate(1, 0, 0) // 1 year
-		price = enums.PRICE_YEARLY
+		price = float64(enums.PRICE_YEARLY)
 	default:
 		// Default to monthly if invalid plan provided
 		endDate = now.AddDate(0, 1, 0)
-		price = enums.PRICE_MONTHLY
+		price = float64(enums.PRICE_MONTHLY)
 		plan = enums.PLAN_MONTHLY
 	}
 

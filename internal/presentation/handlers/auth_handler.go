@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"stock-tracker/internal/domain/model"
-	"stock-tracker/internal/domain/usecases"
+	authModel "stock-tracker/internal/domain/authentication/model"
+	authUsecases "stock-tracker/internal/domain/authentication/usecases"
 	"stock-tracker/internal/infrastructure/auth"
 	"stock-tracker/pkg/logger"
 
@@ -16,8 +16,8 @@ import (
 
 // UserUseCaseInterface defines the contract for user use cases
 type UserUseCaseInterface interface {
-	Register(ctx context.Context, req usecases.RegisterRequest) (*model.User, *auth.TokenPair, error)
-	Login(ctx context.Context, req usecases.LoginRequest) (*model.User, *auth.TokenPair, error)
+	Register(ctx context.Context, req authUsecases.RegisterRequest) (*authModel.User, *auth.TokenPair, error)
+	Login(ctx context.Context, req authUsecases.LoginRequest) (*authModel.User, *auth.TokenPair, error)
 	RefreshToken(ctx context.Context, refreshToken string) (*auth.TokenPair, error)
 }
 
@@ -36,7 +36,7 @@ func NewAuthHandler(userUC UserUseCaseInterface, logger logger.Logger) *AuthHand
 }
 
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
-	var req usecases.RegisterRequest
+	var req authUsecases.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Error("Failed to decode register request", "error", err)
 		render.Status(r, http.StatusBadRequest)
@@ -68,7 +68,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
-	var req usecases.LoginRequest
+	var req authUsecases.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Error("Failed to decode login request", "error", err)
 		render.Status(r, http.StatusBadRequest)

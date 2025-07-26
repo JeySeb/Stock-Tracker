@@ -5,8 +5,8 @@ import (
 	"errors"
 	"net/http"
 
-	"stock-tracker/internal/domain/model"
-	"stock-tracker/internal/domain/usecases"
+	subscriptionModel "stock-tracker/internal/domain/subscription/model"
+	subscriptionUsecases "stock-tracker/internal/domain/subscription/usecases"
 	"stock-tracker/internal/infrastructure/middleware"
 	"stock-tracker/pkg/logger"
 
@@ -19,12 +19,12 @@ import (
 )
 
 type SubscriptionHandler struct {
-	subscriptionUC usecases.SubscriptionUseCase
+	subscriptionUC subscriptionUsecases.SubscriptionUseCase
 	validator      *validator.Validate
 	logger         logger.Logger
 }
 
-func NewSubscriptionHandler(subscriptionUC usecases.SubscriptionUseCase, logger logger.Logger) *SubscriptionHandler {
+func NewSubscriptionHandler(subscriptionUC subscriptionUsecases.SubscriptionUseCase, logger logger.Logger) *SubscriptionHandler {
 	return &SubscriptionHandler{
 		subscriptionUC: subscriptionUC,
 		validator:      validator.New(),
@@ -40,7 +40,7 @@ func (h *SubscriptionHandler) CreateSubscription(w http.ResponseWriter, r *http.
 		return
 	}
 
-	var req usecases.PaymentSimulationRequest
+	var req subscriptionUsecases.PaymentSimulationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.logger.Error("Failed to decode request body", "error", err)
 		h.respondWithError(w, r, http.StatusBadRequest, "Invalid request body")
@@ -119,6 +119,6 @@ func (h *SubscriptionHandler) respondWithJSON(w http.ResponseWriter, r *http.Req
 	render.JSON(w, r, data)
 }
 
-func isValidPlan(plan model.SubscriptionPlan) bool {
+func isValidPlan(plan subscriptionModel.SubscriptionPlan) bool {
 	return plan == enums.PLAN_MONTHLY || plan == enums.PLAN_YEARLY
 }

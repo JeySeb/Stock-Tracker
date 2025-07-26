@@ -7,6 +7,10 @@ import (
 	"github.com/google/uuid"
 )
 
+// SessionDuration defines how long a session remains valid
+const SessionDuration = 7 * 24 * time.Hour // 7 days
+
+
 // Session represents a user's authenticated session
 type Session struct {
 	ID           uuid.UUID `json:"id" db:"id"`
@@ -18,9 +22,6 @@ type Session struct {
 	CreatedAt    time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at" db:"updated_at"`
 }
-
-// SessionDuration defines how long a session remains valid
-const SessionDuration = 7 * 24 * time.Hour // 7 days
 
 // NewSession creates a new session instance with validation
 func NewSession(userID uuid.UUID, refreshToken, userAgent, ipAddress string) (*Session, error) {

@@ -14,10 +14,11 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"stock-tracker/internal/domain/model"
-	"stock-tracker/internal/domain/usecases"
+	authModel "stock-tracker/internal/domain/authentication/model"
+	authUsecases "stock-tracker/internal/domain/authentication/usecases"
 	"stock-tracker/internal/infrastructure/auth"
 	"stock-tracker/internal/presentation/handlers"
+	"stock-tracker/internal/domain/shared/enums"
 	"stock-tracker/tests/mocks"
 )
 
@@ -25,20 +26,20 @@ type mockUserUseCase struct {
 	mock.Mock
 }
 
-func (m *mockUserUseCase) Register(ctx context.Context, req usecases.RegisterRequest) (*model.User, *auth.TokenPair, error) {
+func (m *mockUserUseCase) Register(ctx context.Context, req authUsecases.RegisterRequest) (*authModel.User, *auth.TokenPair, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, nil, args.Error(2)
 	}
-	return args.Get(0).(*model.User), args.Get(1).(*auth.TokenPair), args.Error(2)
+	return args.Get(0).(*authModel.User), args.Get(1).(*auth.TokenPair), args.Error(2)
 }
 
-func (m *mockUserUseCase) Login(ctx context.Context, req usecases.LoginRequest) (*model.User, *auth.TokenPair, error) {
+func (m *mockUserUseCase) Login(ctx context.Context, req authUsecases.LoginRequest) (*authModel.User, *auth.TokenPair, error) {
 	args := m.Called(ctx, req)
 	if args.Get(0) == nil {
 		return nil, nil, args.Error(2)
 	}
-	return args.Get(0).(*model.User), args.Get(1).(*auth.TokenPair), args.Error(2)
+	return args.Get(0).(*authModel.User), args.Get(1).(*auth.TokenPair), args.Error(2)
 }
 
 func (m *mockUserUseCase) RefreshToken(ctx context.Context, refreshToken string) (*auth.TokenPair, error) {
@@ -56,12 +57,12 @@ func TestAuthHandler_Register_Success(t *testing.T) {
 	handler := handlers.NewAuthHandler(mockUseCase, mockLogger)
 
 	userID := uuid.New()
-	testUser := &model.User{
+	testUser := &authModel.User{
 		ID:        userID,
 		Email:     "test@example.com",
 		FirstName: "Test",
 		LastName:  "User",
-		Tier:      model.TIER_BASIC,
+		Tier:      enums.TIER_BASIC,
 	}
 
 	testTokens := &auth.TokenPair{
@@ -70,7 +71,7 @@ func TestAuthHandler_Register_Success(t *testing.T) {
 		ExpiresIn:    900,
 	}
 
-	registerReq := usecases.RegisterRequest{
+	registerReq := authUsecases.RegisterRequest{
 		Email:     "test@example.com",
 		Password:  "SecurePass123!",
 		FirstName: "Test",
@@ -204,12 +205,12 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 	handler := handlers.NewAuthHandler(mockUseCase, mockLogger)
 
 	userID := uuid.New()
-	testUser := &model.User{
+	testUser := &authModel.User{
 		ID:        userID,
 		Email:     "test@example.com",
 		FirstName: "Test",
 		LastName:  "User",
-		Tier:      model.TIER_BASIC,
+		Tier:      enums.TIER_BASIC,
 	}
 
 	testTokens := &auth.TokenPair{
@@ -218,7 +219,7 @@ func TestAuthHandler_Login_Success(t *testing.T) {
 		ExpiresIn:    900,
 	}
 
-	loginReq := usecases.LoginRequest{
+	loginReq := authUsecases.LoginRequest{
 		Email:    "test@example.com",
 		Password: "SecurePass123!",
 	}
@@ -252,7 +253,7 @@ func TestAuthHandler_Login_InvalidCredentials(t *testing.T) {
 	mockLogger := &mocks.MockLogger{}
 	handler := handlers.NewAuthHandler(mockUseCase, mockLogger)
 
-	loginReq := usecases.LoginRequest{
+	loginReq := authUsecases.LoginRequest{
 		Email:    "test@example.com",
 		Password: "WrongPassword",
 	}

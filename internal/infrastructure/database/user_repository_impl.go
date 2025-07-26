@@ -3,8 +3,8 @@ package database
 import (
 	"context"
 	"fmt"
-	"stock-tracker/internal/domain/model"
-	"stock-tracker/internal/domain/repositories"
+	userModel "stock-tracker/internal/domain/auth/model"
+	userRepos "stock-tracker/internal/domain/auth/repositories"
 	"stock-tracker/pkg/logger"
 
 	"github.com/google/uuid"
@@ -16,14 +16,14 @@ type userRepository struct {
 	logger logger.Logger
 }
 
-func NewUserRepository(db *pgxpool.Pool, logger logger.Logger) repositories.UserRepository {
+func NewUserRepository(db *pgxpool.Pool, logger logger.Logger) userRepos.UserRepository {
 	return &userRepository{
 		db:     db,
 		logger: logger,
 	}
 }
 
-func (r *userRepository) Create(ctx context.Context, user *model.User) error {
+func (r *userRepository) Create(ctx context.Context, user *userModel.User) error {
 	query := `
         INSERT INTO users (id, email, password_hash, first_name, last_name, tier, is_verified, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -42,13 +42,13 @@ func (r *userRepository) Create(ctx context.Context, user *model.User) error {
 	return nil
 }
 
-func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.User, error) {
+func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*userModel.User, error) {
 	query := `
         SELECT id, email, password_hash, first_name, last_name, tier, is_verified, last_login, created_at, updated_at
         FROM users WHERE id = $1
     `
 
-	user := &model.User{}
+	user := &userModel.User{}
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&user.ID, &user.Email, &user.Password, &user.FirstName, &user.LastName,
 		&user.Tier, &user.IsVerified, &user.LastLogin, &user.CreatedAt, &user.UpdatedAt,
@@ -61,13 +61,13 @@ func (r *userRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.User
 	return user, nil
 }
 
-func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.User, error) {
+func (r *userRepository) GetByEmail(ctx context.Context, email string) (*userModel.User, error) {
 	query := `
         SELECT id, email, password_hash, first_name, last_name, tier, is_verified, last_login, created_at, updated_at
         FROM users WHERE email = $1
     `
 
-	user := &model.User{}
+	user := &userModel.User{}
 	err := r.db.QueryRow(ctx, query, email).Scan(
 		&user.ID, &user.Email, &user.Password, &user.FirstName, &user.LastName,
 		&user.Tier, &user.IsVerified, &user.LastLogin, &user.CreatedAt, &user.UpdatedAt,
@@ -80,7 +80,7 @@ func (r *userRepository) GetByEmail(ctx context.Context, email string) (*model.U
 	return user, nil
 }
 
-func (r *userRepository) Update(ctx context.Context, user *model.User) error {
+func (r *userRepository) Update(ctx context.Context, user *userModel.User) error {
 	query := `
         UPDATE users 
         SET email = $2, password_hash = $3, first_name = $4, last_name = $5,
@@ -161,7 +161,7 @@ func (r *userRepository) GetUserCount(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-func (r *userRepository) GetUsersByTier(ctx context.Context, tier model.UserTier) ([]*model.User, error) {
+func (r *userRepository) GetUsersByTier(ctx context.Context, tier userModel.UserTier) ([]*userModel.User, error) {
 	query := `
         SELECT id, email, password_hash, first_name, last_name, tier, is_verified, last_login, created_at, updated_at
         FROM users WHERE tier = $1
@@ -174,9 +174,9 @@ func (r *userRepository) GetUsersByTier(ctx context.Context, tier model.UserTier
 	}
 	defer rows.Close()
 
-	var users []*model.User
+	var users []*userModel.User
 	for rows.Next() {
-		user := &model.User{}
+		user := &userModel.User{}
 		err := rows.Scan(
 			&user.ID, &user.Email, &user.Password, &user.FirstName, &user.LastName,
 			&user.Tier, &user.IsVerified, &user.LastLogin, &user.CreatedAt, &user.UpdatedAt,

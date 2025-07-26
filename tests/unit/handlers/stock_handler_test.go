@@ -13,27 +13,29 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
-	"stock-tracker/internal/domain/model"
-	"stock-tracker/internal/domain/authentication/validation"
+	stockModel "stock-tracker/internal/domain/stocks/model"
+	stockValidation "stock-tracker/internal/domain/stocks/validation"
+	valueObjects "stock-tracker/internal/domain/value_objects"
 	"stock-tracker/internal/presentation/handlers"
 	"stock-tracker/tests/mocks"
+	
 )
 
 type mockStockUseCase struct {
 	mock.Mock
 }
 
-func (m *mockStockUseCase) GetStocks(ctx context.Context, filters valueObjects.StockFilters) (interface{}, *valueObjects.Pagination, error) {
+func (m *mockStockUseCase) GetStocks(ctx context.Context, filters stockValidation.StockFilters) (interface{}, *valueObjects.Pagination, error) {
 	args := m.Called(ctx, filters)
 	return args.Get(0), args.Get(1).(*valueObjects.Pagination), args.Error(2)
 }
 
-func (m *mockStockUseCase) GetStocksByTicker(ctx context.Context, ticker string) (interface{}, error) {
+func (m *mockStockUseCase) GetStocksByTicker(ctx context.Context, ticker string) ([]*stockModel.Stock, error) {
 	args := m.Called(ctx, ticker)
 	return args.Get(0), args.Error(1)
 }
 
-func (m *mockStockUseCase) GetStats(ctx context.Context) (interface{}, error) {
+func (m *mockStockUseCase) GetStats(ctx context.Context) (map[string]interface{}, error) {
 	args := m.Called(ctx)
 	return args.Get(0), args.Error(1)
 }
@@ -44,7 +46,7 @@ func TestStockHandler_GetStocks_Success(t *testing.T) {
 	mockLogger := &mocks.MockLogger{}
 	handler := handlers.NewStockHandler(mockUseCase, mockLogger)
 
-	testStocks := []model.Stock{
+	testStocks := []*stockModel.Stock{
 		{
 			Ticker:  "AAPL",
 			Company: "Apple Inc.",
@@ -100,7 +102,7 @@ func TestStockHandler_GetStocks_WithFilters(t *testing.T) {
 			filters.SortOrder == "desc" &&
 			filters.Limit == 20 &&
 			filters.Offset == 10
-	})).Return([]model.Stock{}, &valueObjects.Pagination{}, nil)
+	})).Return([]*stockModel.Stock{}, &valueObjects.Pagination{}, nil)
 
 	req := httptest.NewRequest("GET", "/stocks?ticker=AAPL&company=Apple&brokerage=Goldman&action=upgraded&sort_by=event_time&sort_order=desc&limit=20&offset=10", nil)
 	w := httptest.NewRecorder()
@@ -124,7 +126,7 @@ func TestStockHandler_GetStocks_DefaultFilters(t *testing.T) {
 		return filters.Limit == 50 && // Default limit
 			filters.SortBy == "event_time" && // Default sort
 			filters.SortOrder == "desc" // Default order
-	})).Return([]model.Stock{}, &valueObjects.Pagination{}, nil)
+	})).Return([]*stockModel.Stock{}, &valueObjects.Pagination{}, nil)
 
 	req := httptest.NewRequest("GET", "/stocks", nil)
 	w := httptest.NewRecorder()
@@ -174,7 +176,7 @@ func TestStockHandler_GetStockByTicker_Success(t *testing.T) {
 	mockLogger := &mocks.MockLogger{}
 	handler := handlers.NewStockHandler(mockUseCase, mockLogger)
 
-	testStocks := []model.Stock{
+	testStocks := []*stockModel.Stock{
 		{
 			Ticker:  "AAPL",
 			Company: "Apple Inc.",
@@ -391,7 +393,7 @@ func TestStockHandler_ParseFilters(t *testing.T) {
 					filters.SortOrder == tc.expected.SortOrder &&
 					filters.Limit == tc.expected.Limit &&
 					filters.Offset == tc.expected.Offset
-			})).Return([]model.Stock{}, &valueObjects.Pagination{}, nil)
+			})).Return([]*stockModel.Stock{}, &valueObjects.Pagination{}, nil)
 
 			req := httptest.NewRequest("GET", "/stocks?"+tc.query, nil)
 			w := httptest.NewRecorder()
@@ -477,11 +479,11 @@ func TestStockHandler_Integration(t *testing.T) {
 		r.Get("/stats", handler.GetStats)
 	})
 
-	testStocks := []model.Stock{
+	testStocks := []*stockModel.Stock{
 		{Ticker: "AAPL", Company: "Apple Inc."},
 	}
 
-	mockUseCase.On("GetStocks", mock.Anything, mock.AnythingOfType("valueObjects.StockFilters")).
+	mockUseCase.On("GetStocks", mock.Anything, mock.AnythingOfType("stockValidation.StockFilters")).
 		Return(testStocks, &valueObjects.Pagination{}, nil)
 
 	req := httptest.NewRequest("GET", "/api/v1/stocks?ticker=AAPL", nil)

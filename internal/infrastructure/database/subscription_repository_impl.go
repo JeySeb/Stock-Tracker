@@ -3,8 +3,8 @@ package database
 import (
 	"context"
 	"fmt"
-	"stock-tracker/internal/domain/model"
-	"stock-tracker/internal/domain/repositories"
+	subscriptionModel "stock-tracker/internal/domain/subscription/model"
+	subscriptionRepos "stock-tracker/internal/domain/subscription/repositories"
 	"stock-tracker/pkg/logger"
 	"time"
 
@@ -17,14 +17,14 @@ type subscriptionRepository struct {
 	logger logger.Logger
 }
 
-func NewSubscriptionRepository(db *pgxpool.Pool, logger logger.Logger) repositories.SubscriptionRepository {
+func NewSubscriptionRepository(db *pgxpool.Pool, logger logger.Logger) subscriptionRepos.SubscriptionRepository {
 	return &subscriptionRepository{
 		db:     db,
 		logger: logger,
 	}
 }
 
-func (r *subscriptionRepository) Create(ctx context.Context, subscription *model.Subscription) error {
+func (r *subscriptionRepository) Create(ctx context.Context, subscription *subscriptionModel.Subscription) error {
 	query := `
 		INSERT INTO subscriptions (id, user_id, plan, status, price, currency, 
 			start_date, end_date, payment_reference, created_at, updated_at)
@@ -46,14 +46,14 @@ func (r *subscriptionRepository) Create(ctx context.Context, subscription *model
 	return nil
 }
 
-func (r *subscriptionRepository) GetByID(ctx context.Context, id uuid.UUID) (*model.Subscription, error) {
+func (r *subscriptionRepository) GetByID(ctx context.Context, id uuid.UUID) (*subscriptionModel.Subscription, error) {
 	query := `
 		SELECT id, user_id, plan, status, price, currency,
 			start_date, end_date, payment_reference, created_at, updated_at
 		FROM subscriptions WHERE id = $1
 	`
 
-	subscription := &model.Subscription{}
+	subscription := &subscriptionModel.Subscription{}
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&subscription.ID, &subscription.UserID, &subscription.Plan,
 		&subscription.Status, &subscription.Price, &subscription.Currency,
@@ -68,7 +68,7 @@ func (r *subscriptionRepository) GetByID(ctx context.Context, id uuid.UUID) (*mo
 	return subscription, nil
 }
 
-func (r *subscriptionRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*model.Subscription, error) {
+func (r *subscriptionRepository) GetByUserID(ctx context.Context, userID uuid.UUID) ([]*subscriptionModel.Subscription, error) {
 	query := `
 		SELECT id, user_id, plan, status, price, currency,
 			start_date, end_date, payment_reference, created_at, updated_at
@@ -82,9 +82,9 @@ func (r *subscriptionRepository) GetByUserID(ctx context.Context, userID uuid.UU
 	}
 	defer rows.Close()
 
-	var subscriptions []*model.Subscription
+	var subscriptions []*subscriptionModel.Subscription
 	for rows.Next() {
-		subscription := &model.Subscription{}
+		subscription := &subscriptionModel.Subscription{}
 		err := rows.Scan(
 			&subscription.ID, &subscription.UserID, &subscription.Plan,
 			&subscription.Status, &subscription.Price, &subscription.Currency,
@@ -100,7 +100,7 @@ func (r *subscriptionRepository) GetByUserID(ctx context.Context, userID uuid.UU
 	return subscriptions, nil
 }
 
-func (r *subscriptionRepository) GetActiveByUserID(ctx context.Context, userID uuid.UUID) (*model.Subscription, error) {
+func (r *subscriptionRepository) GetActiveByUserID(ctx context.Context, userID uuid.UUID) (*subscriptionModel.Subscription, error) {
 	query := `
 		SELECT id, user_id, plan, status, price, currency,
 			start_date, end_date, payment_reference, created_at, updated_at
@@ -110,7 +110,7 @@ func (r *subscriptionRepository) GetActiveByUserID(ctx context.Context, userID u
 		LIMIT 1
 	`
 
-	subscription := &model.Subscription{}
+	subscription := &subscriptionModel.Subscription{}
 	err := r.db.QueryRow(ctx, query, userID).Scan(
 		&subscription.ID, &subscription.UserID, &subscription.Plan,
 		&subscription.Status, &subscription.Price, &subscription.Currency,
@@ -125,7 +125,7 @@ func (r *subscriptionRepository) GetActiveByUserID(ctx context.Context, userID u
 	return subscription, nil
 }
 
-func (r *subscriptionRepository) Update(ctx context.Context, subscription *model.Subscription) error {
+func (r *subscriptionRepository) Update(ctx context.Context, subscription *subscriptionModel.Subscription) error {
 	query := `
 		UPDATE subscriptions 
 		SET plan = $2, status = $3, price = $4, currency = $5,
@@ -151,7 +151,7 @@ func (r *subscriptionRepository) Update(ctx context.Context, subscription *model
 	return nil
 }
 
-func (r *subscriptionRepository) GetExpiring(ctx context.Context, within time.Duration) ([]*model.Subscription, error) {
+	func (r *subscriptionRepository) GetExpiring(ctx context.Context, within time.Duration) ([]*subscriptionModel.Subscription, error) {
 	query := `
 		SELECT id, user_id, plan, status, price, currency,
 			start_date, end_date, payment_reference, created_at, updated_at
@@ -167,9 +167,9 @@ func (r *subscriptionRepository) GetExpiring(ctx context.Context, within time.Du
 	}
 	defer rows.Close()
 
-	var subscriptions []*model.Subscription
+	var subscriptions []*subscriptionModel.Subscription
 	for rows.Next() {
-		subscription := &model.Subscription{}
+		subscription := &subscriptionModel.Subscription{}
 		err := rows.Scan(
 			&subscription.ID, &subscription.UserID, &subscription.Plan,
 			&subscription.Status, &subscription.Price, &subscription.Currency,

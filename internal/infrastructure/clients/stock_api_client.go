@@ -9,7 +9,7 @@ import (
 	"strings"
 	"time"
 
-	"stock-tracker/internal/domain/model"
+	stockModel "stock-tracker/internal/domain/stocks/model"
 	"stock-tracker/pkg/logger"
 
 	"github.com/hashicorp/go-retryablehttp"
@@ -33,8 +33,8 @@ type StockAPIItem struct {
 }
 
 type StockAPIClient interface {
-	FetchAllStocks(ctx context.Context) ([]*model.Stock, error)
-	FetchPage(ctx context.Context, nextPage string) ([]*model.Stock, string, error)
+	FetchAllStocks(ctx context.Context) ([]*stockModel.Stock, error)
+	FetchPage(ctx context.Context, nextPage string) ([]*stockModel.Stock, string, error)
 }
 
 type stockAPIClient struct {
@@ -61,8 +61,8 @@ func NewStockAPIClient(baseURL, apiKey string, logger logger.Logger) StockAPICli
 	}
 }
 
-func (c *stockAPIClient) FetchAllStocks(ctx context.Context) ([]*model.Stock, error) {
-	var allStocks []*model.Stock
+func (c *stockAPIClient) FetchAllStocks(ctx context.Context) ([]*stockModel.Stock, error) {
+	var allStocks []*stockModel.Stock
 	nextPage := ""
 	pageCount := 0
 
@@ -99,7 +99,7 @@ func (c *stockAPIClient) FetchAllStocks(ctx context.Context) ([]*model.Stock, er
 	return allStocks, nil
 }
 
-func (c *stockAPIClient) FetchPage(ctx context.Context, nextPage string) ([]*model.Stock, string, error) {
+func (c *stockAPIClient) FetchPage(ctx context.Context, nextPage string) ([]*stockModel.Stock, string, error) {
 	url := c.baseURL
 	if nextPage != "" {
 		url += "?next_page=" + nextPage
@@ -130,7 +130,7 @@ func (c *stockAPIClient) FetchPage(ctx context.Context, nextPage string) ([]*mod
 		return nil, "", fmt.Errorf("failed to decode response: %w", err)
 	}
 
-	stocks := make([]*model.Stock, 0, len(apiResponse.Items))
+	stocks := make([]*stockModel.Stock, 0, len(apiResponse.Items))
 	for _, item := range apiResponse.Items {
 		stock, err := c.convertAPIItemToStock(item)
 		if err != nil {
@@ -141,14 +141,14 @@ func (c *stockAPIClient) FetchPage(ctx context.Context, nextPage string) ([]*mod
 	return stocks, apiResponse.NextPage, nil
 }
 
-func (c *stockAPIClient) convertAPIItemToStock(item StockAPIItem) (*model.Stock, error) {
+func (c *stockAPIClient) convertAPIItemToStock(item StockAPIItem) (*stockModel.Stock, error) {
 
 	eventTime, err := time.Parse(time.RFC3339, item.Time)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse event time %s: %w", item.Time, err)
 	}
 
-	stock := model.NewStock(item.Ticker, item.Company, item.Brokerage, item.Action, eventTime)
+	stock := stockModel.NewStock(item.Ticker, item.Company, item.Brokerage, item.Action, eventTime)
 	stock.RatingFrom = item.RatingFrom
 	stock.RatingTo = item.RatingTo
 

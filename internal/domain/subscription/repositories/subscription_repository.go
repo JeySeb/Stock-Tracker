@@ -2,7 +2,7 @@ package repositories
 
 import (
 	"context"
-	"stock-tracker/internal/domain/model"
+	subscriptionModel "stock-tracker/internal/domain/subscription/model"
 	"time"
 
 	"github.com/google/uuid"
@@ -11,22 +11,22 @@ import (
 // SubscriptionRepository defines the interface for subscription data access
 type SubscriptionRepository interface {
 	// Create stores a new subscription in the repository
-	Create(ctx context.Context, subscription *model.Subscription) error
+	Create(ctx context.Context, subscription *subscriptionModel.Subscription) error
 
 	// GetByID retrieves a subscription by its ID
-	GetByID(ctx context.Context, id uuid.UUID) (*model.Subscription, error)
+	GetByID(ctx context.Context, id uuid.UUID) (*subscriptionModel.Subscription, error)
 
 	// GetByUserID retrieves all subscriptions for a given user ID
-	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*model.Subscription, error)
+	GetByUserID(ctx context.Context, userID uuid.UUID) ([]*subscriptionModel.Subscription, error)
 
 	// GetActiveByUserID retrieves the active subscription for a given user ID
-	GetActiveByUserID(ctx context.Context, userID uuid.UUID) (*model.Subscription, error)
+	GetActiveByUserID(ctx context.Context, userID uuid.UUID) (*subscriptionModel.Subscription, error)
 
 	// Update modifies an existing subscription in the repository
-	Update(ctx context.Context, subscription *model.Subscription) error
+	Update(ctx context.Context, subscription *subscriptionModel.Subscription) error
 
 	// GetExpiring retrieves all subscriptions that will expire within the given duration
-	GetExpiring(ctx context.Context, within time.Duration) ([]*model.Subscription, error)
+	GetExpiring(ctx context.Context, within time.Duration) ([]*subscriptionModel.Subscription, error)
 
 	// Delete removes a subscription from the repository
 	Delete(ctx context.Context, id uuid.UUID) error
