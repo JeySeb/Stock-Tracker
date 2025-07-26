@@ -12,8 +12,8 @@ import (
 	"github.com/stretchr/testify/suite"
 
 	stockModel "stock-tracker/internal/domain/stocks/model"
+	stockUsecases "stock-tracker/internal/domain/stocks/usecase"
 	stockValidation "stock-tracker/internal/domain/stocks/validation"
-	stockUsecases "stock-tracker/internal/domain/stocks/usecases"
 	"stock-tracker/tests/mocks"
 )
 
@@ -23,7 +23,7 @@ type StockIngestionUseCaseSuite struct {
 	brokerRepo *mocks.MockBrokerRepository
 	apiClient  *mocks.MockStockAPIClient
 	logger     *mocks.MockLogger
-	useCase    *usecases.StockIngestionUseCase
+	useCase    *stockUsecases.StockIngestionUseCase
 }
 
 func (suite *StockIngestionUseCaseSuite) SetupTest() {
@@ -32,7 +32,7 @@ func (suite *StockIngestionUseCaseSuite) SetupTest() {
 	suite.apiClient = &mocks.MockStockAPIClient{}
 	suite.logger = &mocks.MockLogger{}
 
-	suite.useCase = usecases.NewStockIngestionUseCase(
+	suite.useCase = stockUsecases.NewStockIngestionUseCase(
 		suite.stockRepo,
 		suite.brokerRepo,
 		suite.apiClient,
@@ -80,7 +80,7 @@ func (suite *StockIngestionUseCaseSuite) TestIngestStocks_Success() {
 	suite.apiClient.On("FetchAllStocks", ctx).Return(testStocks, nil)
 	suite.brokerRepo.On("GetAll", ctx).Return(existingBrokers, nil)
 	suite.brokerRepo.On("Create", ctx, mock.AnythingOfType("*stockModel.Broker")).Return(nil)
-	suite.stockRepo.On("BulkCreate", mock.Anything, mock.AnythingOfType("[]*model.Stock")).Return(nil)
+	suite.stockRepo.On("BulkCreate", mock.Anything, mock.AnythingOfType("[]*stockModel.Stock")).Return(nil)
 
 	// Act
 	err := suite.useCase.IngestStocks(ctx)
@@ -247,7 +247,7 @@ func (suite *StockIngestionUseCaseSuite) TestGetStats() {
 
 	// Setup expectations
 	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
-	suite.stockRepo.On("GetAll", ctx, mock.AnythingOfType("valueObjects.StockFilters")).Return([]*stockModel.Stock{}, &valueObjects.Pagination{TotalItems: 5}, nil)
+	suite.stockRepo.On("GetAll", ctx, mock.AnythingOfType("stockValidation.StockFilters")).Return([]*stockModel.Stock{}, &stockValidation.Pagination{TotalItems: 5}, nil)
 
 	// Act
 	stats, err := suite.useCase.GetStats(ctx)
@@ -266,14 +266,14 @@ func (suite *StockIngestionUseCaseSuite) TestGetStats() {
 func (suite *StockIngestionUseCaseSuite) TestGetStocks() {
 	// Arrange
 	ctx := context.Background()
-	filters := valueObjects.StockFilters{
+	filters := stockValidation.StockFilters{
 		Ticker: "AAPL",
 		Limit:  10,
 	}
 
 	// Setup expectations
 	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
-	suite.stockRepo.On("GetAll", ctx, filters).Return([]*stockModel.Stock{}, &valueObjects.Pagination{TotalItems: 0}, nil)
+	suite.stockRepo.On("GetAll", ctx, filters).Return([]*stockModel.Stock{}, &stockValidation.Pagination{TotalItems: 0}, nil)
 
 	// Act
 	stocks, pagination, err := suite.useCase.GetStocks(ctx, filters)
@@ -329,7 +329,7 @@ func (suite *StockIngestionUseCaseSuite) TestIngestStocks_ConcurrentProcessing()
 	suite.brokerRepo.On("GetAll", ctx).Return(existingBrokers, nil)
 
 	// Expect multiple BulkCreate calls for different batches
-	suite.stockRepo.On("BulkCreate", mock.Anything, mock.AnythingOfType("[]*model.Stock")).Return(nil).Times(3) // 250 stocks / 100 batch size = 3 batches
+	suite.stockRepo.On("BulkCreate", mock.Anything, mock.AnythingOfType("[]*stockModel.Stock")).Return(nil).Times(3) // 250 stocks / 100 batch size = 3 batches
 
 	// Act
 	err := suite.useCase.IngestStocks(ctx)
@@ -348,7 +348,7 @@ func (suite *StockIngestionUseCaseSuite) TestIngestStocks_ContextCancellation() 
 	suite.apiClient.On("FetchAllStocks", mock.MatchedBy(func(ctx context.Context) bool {
 		// Check if context is cancelled
 		return ctx.Err() != nil
-	})).Return([]*model.Stock{}, context.Canceled)
+	})).Return([]*stockModel.Stock{}, context.Canceled)
 
 	suite.logger.On("Info", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()
 	suite.logger.On("Error", mock.Anything, mock.Anything, mock.Anything, mock.Anything, mock.Anything).Maybe()

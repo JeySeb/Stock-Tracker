@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
-	stockUsecases "stock-tracker/internal/domain/stocks/usecases"
+	stockUsecases "stock-tracker/internal/domain/stocks/usecase"
 	stockValidation "stock-tracker/internal/domain/stocks/validation"
 	"stock-tracker/pkg/logger"
 

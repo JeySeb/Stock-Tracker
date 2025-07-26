@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"strings"
 
-	authModel "stock-tracker/internal/domain/authentication/model"
+	"stock-tracker/internal/domain/shared/enums"
 	"stock-tracker/internal/infrastructure/auth"
 	"stock-tracker/pkg/logger"
 

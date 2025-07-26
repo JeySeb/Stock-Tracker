@@ -2,7 +2,7 @@ package database
 
 import (
 	"context"
-	sessionModel "stock-tracker/internal/domain/auth/model"
+	sessionModel "stock-tracker/internal/domain/authentication/model"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"

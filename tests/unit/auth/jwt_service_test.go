@@ -52,7 +52,7 @@ func TestJWTService_ValidateAccessToken_Success(t *testing.T) {
 	// Arrange
 	jwtService := auth.NewJWTService("test-secret-key-minimum-32-characters")
 
-	user := &model.User{
+	user := &authModel.User{
 		ID:        uuid.New(),
 		Email:     "test@example.com",
 		FirstName: "Test",
@@ -104,7 +104,7 @@ func TestJWTService_ValidateAccessToken_WrongSigningKey(t *testing.T) {
 	jwtService1 := auth.NewJWTService("first-secret-key-minimum-32-chars")
 	jwtService2 := auth.NewJWTService("second-secret-key-minimum-32-chars")
 
-	user := &model.User{
+	user := &authModel.User{
 		ID:    uuid.New(),
 		Email: "test@example.com",
 		Tier:  enums.TIER_BASIC,
@@ -141,7 +141,7 @@ func TestJWTService_TokenPair_Integration(t *testing.T) {
 	// Arrange
 	jwtService := auth.NewJWTService("test-secret-key-minimum-32-characters")
 
-	user := &model.User{
+	user := &authModel.User{
 		ID:        uuid.New(),
 		Email:     "integration@example.com",
 		FirstName: "Integration",

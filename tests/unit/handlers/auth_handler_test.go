@@ -15,7 +15,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	authModel "stock-tracker/internal/domain/authentication/model"
-	authUsecases "stock-tracker/internal/domain/authentication/usecases"
+	authUsecases "stock-tracker/internal/domain/authentication/usecase"
 	"stock-tracker/internal/infrastructure/auth"
 	"stock-tracker/internal/presentation/handlers"
 	"stock-tracker/internal/domain/shared/enums"
@@ -136,7 +136,7 @@ func TestAuthHandler_Register_ValidationFailure(t *testing.T) {
 
 	mockLogger.On("Info", "Invalid register request", "error", mock.Anything)
 
-	registerReq := usecases.RegisterRequest{
+	registerReq := authUsecases.RegisterRequest{
 		Email:     "invalid-email",
 		Password:  "123", // too short
 		FirstName: "",    // empty
@@ -168,7 +168,7 @@ func TestAuthHandler_Register_UseCaseError(t *testing.T) {
 	mockLogger := &mocks.MockLogger{}
 	handler := handlers.NewAuthHandler(mockUseCase, mockLogger)
 
-	registerReq := usecases.RegisterRequest{
+	registerReq := authUsecases.RegisterRequest{
 		Email:     "test@example.com",
 		Password:  "SecurePass123!",
 		FirstName: "Test",

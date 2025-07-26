@@ -13,7 +13,8 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
 
-	"stock-tracker/internal/domain/usecases"
+	stockUsecases "stock-tracker/internal/domain/stocks/usecase"
+	authUsecases "stock-tracker/internal/domain/authentication/usecase"
 	"stock-tracker/internal/infrastructure/auth"
 	"stock-tracker/internal/infrastructure/config"
 	"stock-tracker/internal/infrastructure/database"
@@ -62,8 +63,8 @@ func main() {
 	jwtService := auth.NewJWTService(jwtSecret)
 
 	// Initialize use cases
-	stockQueryUC := usecases.NewStockQueryUseCase(stockRepo, brokerRepo, log)
-	userUC := usecases.NewUserUseCase(userRepo, subscriptionRepo, sessionRepo, jwtService, log)
+	stockQueryUC := stockUsecases.NewStockQueryUseCase(stockRepo, brokerRepo, log)
+	userUC := authUsecases.NewUserUseCase(userRepo, subscriptionRepo, sessionRepo, jwtService, log)
 	// subscriptionUC := usecases.NewSubscriptionUseCase(subscriptionRepo, userRepo, log) // TODO: Use when subscription handler is implemented
 
 	// Initialize middleware

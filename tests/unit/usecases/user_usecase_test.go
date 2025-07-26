@@ -6,10 +6,9 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
-	authModel "stock-tracker/internal/domain/authentication/model"
-	authUsecases "stock-tracker/internal/domain/authentication/usecases"
-	"stock-tracker/internal/infrastructure/auth"
+	authUsecases "stock-tracker/internal/domain/authentication/usecase"
 	"stock-tracker/tests/mocks"
+	"stock-tracker/internal/infrastructure/auth"
 )
 
 func TestUserUseCase_Register_Success(t *testing.T) {
@@ -32,7 +31,7 @@ func TestUserUseCase_Register_Success(t *testing.T) {
 	// Mock expectations
 	userRepo.On("GetByEmail", mock.Anything, req.Email).Return(nil, assert.AnError)
 	userRepo.On("Create", mock.Anything, mock.Anything).Return(nil)
-	tokenPair := &authModel.TokenPair{
+	tokenPair := &auth.TokenPair{
 		AccessToken:  "mock_access_token",
 		RefreshToken: "mock_refresh_token",
 	}

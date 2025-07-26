@@ -8,6 +8,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	authModel "stock-tracker/internal/domain/authentication/model"
+	"stock-tracker/internal/domain/shared/enums"
 	subscriptionModel "stock-tracker/internal/domain/subscription/model"
 )
 
@@ -62,7 +63,7 @@ func (m *MockUserRepository) GetUserCount(ctx context.Context) (int, error) {
 	return args.Int(0), args.Error(1)
 }
 
-func (m *MockUserRepository) GetUsersByTier(ctx context.Context, tier authModel.UserTier) ([]*authModel.User, error) {
+func (m *MockUserRepository) GetUsersByTier(ctx context.Context, tier enums.UserTier) ([]*authModel.User, error) {
 	args := m.Called(ctx, tier)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)

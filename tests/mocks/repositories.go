@@ -7,12 +7,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/mock"
 
-	authModel "stock-tracker/internal/domain/authentication/model"
-	authValidation "stock-tracker/internal/domain/authentication/validation"
 	stockModel "stock-tracker/internal/domain/stocks/model"
 	stockValidation "stock-tracker/internal/domain/stocks/validation"
-	subscriptionModel "stock-tracker/internal/domain/subscription/model"
-	subscriptionValidation "stock-tracker/internal/domain/subscription/validation"
 	stockRepos "stock-tracker/internal/domain/stocks/repositories"
 )
 

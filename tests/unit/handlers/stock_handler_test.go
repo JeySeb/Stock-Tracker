@@ -15,29 +15,27 @@ import (
 
 	stockModel "stock-tracker/internal/domain/stocks/model"
 	stockValidation "stock-tracker/internal/domain/stocks/validation"
-	valueObjects "stock-tracker/internal/domain/value_objects"
 	"stock-tracker/internal/presentation/handlers"
 	"stock-tracker/tests/mocks"
-	
 )
 
 type mockStockUseCase struct {
 	mock.Mock
 }
 
-func (m *mockStockUseCase) GetStocks(ctx context.Context, filters stockValidation.StockFilters) (interface{}, *valueObjects.Pagination, error) {
+func (m *mockStockUseCase) GetStocks(ctx context.Context, filters stockValidation.StockFilters) (interface{}, *stockValidation.Pagination, error) {
 	args := m.Called(ctx, filters)
-	return args.Get(0), args.Get(1).(*valueObjects.Pagination), args.Error(2)
+	return args.Get(0), args.Get(1).(*stockValidation.Pagination), args.Error(2)
 }
 
-func (m *mockStockUseCase) GetStocksByTicker(ctx context.Context, ticker string) ([]*stockModel.Stock, error) {
+func (m *mockStockUseCase) GetStocksByTicker(ctx context.Context, ticker string) (interface{}, error) {
 	args := m.Called(ctx, ticker)
-	return args.Get(0), args.Error(1)
+	return args.Get(0).([]*stockModel.Stock), args.Error(1)
 }
 
-func (m *mockStockUseCase) GetStats(ctx context.Context) (map[string]interface{}, error) {
+func (m *mockStockUseCase) GetStats(ctx context.Context) (interface{}, error) {
 	args := m.Called(ctx)
-	return args.Get(0), args.Error(1)
+	return args.Get(0).(map[string]interface{}), args.Error(1)
 }
 
 func TestStockHandler_GetStocks_Success(t *testing.T) {
@@ -54,7 +52,7 @@ func TestStockHandler_GetStocks_Success(t *testing.T) {
 		},
 	}
 
-	pagination := &valueObjects.Pagination{
+	pagination := &stockValidation.Pagination{
 		Page:       1,
 		Limit:      10,
 		TotalItems: 1,
@@ -63,7 +61,7 @@ func TestStockHandler_GetStocks_Success(t *testing.T) {
 		HasPrev:    false,
 	}
 
-	mockUseCase.On("GetStocks", mock.Anything, mock.AnythingOfType("valueObjects.StockFilters")).
+	mockUseCase.On("GetStocks", mock.MatchedBy(func(ctx context.Context) bool { return true }), mock.AnythingOfType("stockValidation.StockFilters")).
 		Return(testStocks, pagination, nil)
 
 	req := httptest.NewRequest("GET", "/stocks?ticker=AAPL&limit=10&offset=0", nil)
@@ -93,7 +91,7 @@ func TestStockHandler_GetStocks_WithFilters(t *testing.T) {
 	mockLogger := &mocks.MockLogger{}
 	handler := handlers.NewStockHandler(mockUseCase, mockLogger)
 
-	mockUseCase.On("GetStocks", mock.Anything, mock.MatchedBy(func(filters valueObjects.StockFilters) bool {
+	mockUseCase.On("GetStocks", mock.Anything, mock.MatchedBy(func(filters stockValidation.StockFilters) bool {
 		return filters.Ticker == "AAPL" &&
 			filters.Company == "Apple" &&
 			filters.Brokerage == "Goldman" &&
@@ -102,7 +100,7 @@ func TestStockHandler_GetStocks_WithFilters(t *testing.T) {
 			filters.SortOrder == "desc" &&
 			filters.Limit == 20 &&
 			filters.Offset == 10
-	})).Return([]*stockModel.Stock{}, &valueObjects.Pagination{}, nil)
+	})).Return([]*stockModel.Stock{}, &stockValidation.Pagination{}, nil)
 
 	req := httptest.NewRequest("GET", "/stocks?ticker=AAPL&company=Apple&brokerage=Goldman&action=upgraded&sort_by=event_time&sort_order=desc&limit=20&offset=10", nil)
 	w := httptest.NewRecorder()
@@ -121,12 +119,12 @@ func TestStockHandler_GetStocks_DefaultFilters(t *testing.T) {
 	mockLogger := &mocks.MockLogger{}
 	handler := handlers.NewStockHandler(mockUseCase, mockLogger)
 
-	mockUseCase.On("GetStocks", mock.Anything, mock.MatchedBy(func(filters valueObjects.StockFilters) bool {
+	mockUseCase.On("GetStocks", mock.Anything, mock.MatchedBy(func(filters stockValidation.StockFilters) bool {
 		// Check that defaults are applied
 		return filters.Limit == 50 && // Default limit
 			filters.SortBy == "event_time" && // Default sort
 			filters.SortOrder == "desc" // Default order
-	})).Return([]*stockModel.Stock{}, &valueObjects.Pagination{}, nil)
+	})).Return([]*stockModel.Stock{}, &stockValidation.Pagination{}, nil)
 
 	req := httptest.NewRequest("GET", "/stocks", nil)
 	w := httptest.NewRecorder()
@@ -146,8 +144,8 @@ func TestStockHandler_GetStocks_UseCaseError(t *testing.T) {
 	handler := handlers.NewStockHandler(mockUseCase, mockLogger)
 
 	expectedError := errors.New("database connection failed")
-	mockUseCase.On("GetStocks", mock.Anything, mock.AnythingOfType("valueObjects.StockFilters")).
-		Return(nil, (*valueObjects.Pagination)(nil), expectedError)
+	mockUseCase.On("GetStocks", mock.MatchedBy(func(ctx context.Context) bool { return true }), mock.AnythingOfType("stockValidation.StockFilters")).
+		Return(nil, (*stockValidation.Pagination)(nil), expectedError)
 
 	mockLogger.On("Error", "Failed to get stocks", "error", mock.Anything).Return()
 
@@ -339,12 +337,12 @@ func TestStockHandler_ParseFilters(t *testing.T) {
 	testCases := []struct {
 		name     string
 		query    string
-		expected valueObjects.StockFilters
+		expected stockValidation.StockFilters
 	}{
 		{
 			name:  "All parameters",
 			query: "ticker=AAPL&company=Apple&brokerage=Goldman&action=upgraded&sort_by=ticker&sort_order=asc&limit=25&offset=50",
-			expected: valueObjects.StockFilters{
+			expected: stockValidation.StockFilters{
 				Ticker:    "AAPL",
 				Company:   "Apple",
 				Brokerage: "Goldman",
@@ -358,7 +356,7 @@ func TestStockHandler_ParseFilters(t *testing.T) {
 		{
 			name:  "Invalid limit and offset",
 			query: "limit=invalid&offset=invalid",
-			expected: valueObjects.StockFilters{
+			expected: stockValidation.StockFilters{
 				Limit:     50,           // Default
 				Offset:    0,            // Default (invalid value ignored)
 				SortBy:    "event_time", // Default
@@ -368,7 +366,7 @@ func TestStockHandler_ParseFilters(t *testing.T) {
 		{
 			name:  "Empty query",
 			query: "",
-			expected: valueObjects.StockFilters{
+			expected: stockValidation.StockFilters{
 				Limit:     50,           // Default
 				Offset:    0,            // Default
 				SortBy:    "event_time", // Default
@@ -384,7 +382,7 @@ func TestStockHandler_ParseFilters(t *testing.T) {
 			mockLogger := &mocks.MockLogger{}
 			handler := handlers.NewStockHandler(mockUseCase, mockLogger)
 
-			mockUseCase.On("GetStocks", mock.Anything, mock.MatchedBy(func(filters valueObjects.StockFilters) bool {
+			mockUseCase.On("GetStocks", mock.Anything, mock.MatchedBy(func(filters stockValidation.StockFilters) bool {
 				return filters.Ticker == tc.expected.Ticker &&
 					filters.Company == tc.expected.Company &&
 					filters.Brokerage == tc.expected.Brokerage &&
@@ -393,7 +391,7 @@ func TestStockHandler_ParseFilters(t *testing.T) {
 					filters.SortOrder == tc.expected.SortOrder &&
 					filters.Limit == tc.expected.Limit &&
 					filters.Offset == tc.expected.Offset
-			})).Return([]*stockModel.Stock{}, &valueObjects.Pagination{}, nil)
+			})).Return([]*stockModel.Stock{}, &stockValidation.Pagination{}, nil)
 
 			req := httptest.NewRequest("GET", "/stocks?"+tc.query, nil)
 			w := httptest.NewRecorder()
@@ -483,8 +481,8 @@ func TestStockHandler_Integration(t *testing.T) {
 		{Ticker: "AAPL", Company: "Apple Inc."},
 	}
 
-	mockUseCase.On("GetStocks", mock.Anything, mock.AnythingOfType("stockValidation.StockFilters")).
-		Return(testStocks, &valueObjects.Pagination{}, nil)
+	mockUseCase.On("GetStocks", mock.MatchedBy(func(ctx context.Context) bool { return true }), mock.AnythingOfType("stockValidation.StockFilters")).
+		Return(testStocks, &stockValidation.Pagination{}, nil)
 
 	req := httptest.NewRequest("GET", "/api/v1/stocks?ticker=AAPL", nil)
 	w := httptest.NewRecorder()

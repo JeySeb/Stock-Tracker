@@ -5,8 +5,7 @@ import (
 	"errors"
 	"net/http"
 
-	subscriptionModel "stock-tracker/internal/domain/subscription/model"
-	subscriptionUsecases "stock-tracker/internal/domain/subscription/usecases"
+	subscriptionUsecases "stock-tracker/internal/domain/subscription/usecase"
 	"stock-tracker/internal/infrastructure/middleware"
 	"stock-tracker/pkg/logger"
 
@@ -119,6 +118,6 @@ func (h *SubscriptionHandler) respondWithJSON(w http.ResponseWriter, r *http.Req
 	render.JSON(w, r, data)
 }
 
-func isValidPlan(plan subscriptionModel.SubscriptionPlan) bool {
+func isValidPlan(plan enums.SubscriptionPlan) bool {
 	return plan == enums.PLAN_MONTHLY || plan == enums.PLAN_YEARLY
 }

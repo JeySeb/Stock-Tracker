@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	authModel "stock-tracker/internal/domain/authentication/model"
-	authUsecases "stock-tracker/internal/domain/authentication/usecases"
+	authUsecases "stock-tracker/internal/domain/authentication/usecase"
 	"stock-tracker/internal/infrastructure/auth"
 	"stock-tracker/pkg/logger"
 

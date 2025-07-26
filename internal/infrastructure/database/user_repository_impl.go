@@ -3,8 +3,9 @@ package database
 import (
 	"context"
 	"fmt"
-	userModel "stock-tracker/internal/domain/auth/model"
-	userRepos "stock-tracker/internal/domain/auth/repositories"
+	userModel "stock-tracker/internal/domain/authentication/model"
+	userRepos "stock-tracker/internal/domain/authentication/repositories"
+	"stock-tracker/internal/domain/shared/enums"
 	"stock-tracker/pkg/logger"
 
 	"github.com/google/uuid"
@@ -161,7 +162,7 @@ func (r *userRepository) GetUserCount(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-func (r *userRepository) GetUsersByTier(ctx context.Context, tier userModel.UserTier) ([]*userModel.User, error) {
+func (r *userRepository) GetUsersByTier(ctx context.Context, tier enums.UserTier) ([]*userModel.User, error) {
 	query := `
         SELECT id, email, password_hash, first_name, last_name, tier, is_verified, last_login, created_at, updated_at
         FROM users WHERE tier = $1

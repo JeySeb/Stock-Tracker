@@ -359,7 +359,7 @@ func TestStock_Validate(t *testing.T) {
 
 // Benchmark tests for performance critical methods
 func BenchmarkStock_IsUpgrade(b *testing.B) {
-	stock := &model.Stock{Action: "upgraded by Goldman Sachs"}
+	stock := &stockModel.Stock{Action: "upgraded by Goldman Sachs"}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -368,7 +368,7 @@ func BenchmarkStock_IsUpgrade(b *testing.B) {
 }
 
 func BenchmarkStock_GetRatingScore(b *testing.B) {
-	stock := &model.Stock{
+	stock := &stockModel.Stock{
 		RatingFrom: "Hold",
 		RatingTo:   "Buy",
 	}

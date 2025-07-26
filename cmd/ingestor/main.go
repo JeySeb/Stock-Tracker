@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"stock-tracker/internal/domain/usecases"
+	stockUsecases "stock-tracker/internal/domain/stocks/usecase"
 	"stock-tracker/internal/infrastructure/clients"
 	"stock-tracker/internal/infrastructure/config"
 	"stock-tracker/internal/infrastructure/database"
@@ -51,7 +51,7 @@ func main() {
 	stockAPIClient := clients.NewStockAPIClient(cfg.StockAPIURL, cfg.StockAPIKey, logger)
 
 	// Initialize the use case
-	stockIngestionUseCase := usecases.NewStockIngestionUseCase(stockRepo, brokerRepo, stockAPIClient, logger)
+	stockIngestionUseCase := stockUsecases.NewStockIngestionUseCase(stockRepo, brokerRepo, stockAPIClient, logger)
 	// Initialize the cron job (cron scheduler)
 	c := cron.New(cron.WithLogger(cron.VerbosePrintfLogger(log.New(os.Stdout, "cron: ", log.LstdFlags))))
 

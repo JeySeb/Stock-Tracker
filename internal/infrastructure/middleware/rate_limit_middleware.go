@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	authModel "stock-tracker/internal/domain/authentication/model"
 	"stock-tracker/internal/domain/shared/enums"
 	"stock-tracker/pkg/logger"
 
