@@ -13,6 +13,10 @@ import (
 	"golang.org/x/time/rate"
 )
 
+const (
+	RateLimitRemainingKey contextKey = "rate_limit_remaining"
+)
+
 type RateLimiter struct {
 	visitors map[string]*rate.Limiter
 	mu       sync.Mutex

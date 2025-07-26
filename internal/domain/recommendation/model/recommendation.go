@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/stock-tracker/internal/domain/recommendation/model"
 	"github.com/stock-tracker/internal/domain/shared/enums"
 )
 
@@ -18,13 +17,13 @@ type Recommendation struct {
 	RecommendationType enums.RecommendationType `json:"recommendation_type" db:"recommendation_type"`
 
 	// Basic factors (available to all users)
-	BasicFactors []model.ScoringFactor `json:"basic_factors" db:"basic_factors"`
+	BasicFactors []ScoringFactor `json:"basic_factors" db:"basic_factors"`
 
 	// Enriched data (registered users only)
-	ExternalData *model.ExternalStockData `json:"external_data,omitempty" db:"external_data"`
+	ExternalData *ExternalStockData `json:"external_data,omitempty" db:"external_data"`
 
 	// Premium insights (premium users only)
-	AIInsights *model.AIGeneratedInsights `json:"ai_insights,omitempty" db:"ai_insights"`
+	AIInsights *AIGeneratedInsights `json:"ai_insights,omitempty" db:"ai_insights"`
 
 	Explanation string    `json:"explanation" db:"explanation"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
