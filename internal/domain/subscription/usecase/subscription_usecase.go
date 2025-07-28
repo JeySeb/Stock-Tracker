@@ -14,7 +14,13 @@ import (
 	"github.com/google/uuid"
 )
 
-type SubscriptionUseCase struct {
+// SubscriptionUseCase defines the interface for subscription business logic
+type SubscriptionUseCase interface {
+	CreateSubscription(ctx context.Context, userID uuid.UUID, req PaymentSimulationRequest) (*subscriptionModel.Subscription, error)
+	SimulatePayment(ctx context.Context, subscriptionID uuid.UUID) error
+}
+
+type subscriptionUseCase struct {
 	subscriptionRepo subscriptionRepos.SubscriptionRepository
 	userRepo         authRepos.UserRepository
 	logger           logger.Logger
@@ -24,8 +30,8 @@ func NewSubscriptionUseCase(
 	subscriptionRepo subscriptionRepos.SubscriptionRepository,
 	userRepo authRepos.UserRepository,
 	logger logger.Logger,
-) *SubscriptionUseCase {
-	return &SubscriptionUseCase{
+) SubscriptionUseCase {
+	return &subscriptionUseCase{
 		subscriptionRepo: subscriptionRepo,
 		userRepo:         userRepo,
 		logger:           logger,
@@ -36,7 +42,7 @@ type PaymentSimulationRequest struct {
 	Plan enums.SubscriptionPlan `json:"plan" validate:"required,oneof=monthly yearly"`
 }
 
-func (uc *SubscriptionUseCase) CreateSubscription(ctx context.Context, userID uuid.UUID, req PaymentSimulationRequest) (*subscriptionModel.Subscription, error) {
+func (uc *subscriptionUseCase) CreateSubscription(ctx context.Context, userID uuid.UUID, req PaymentSimulationRequest) (*subscriptionModel.Subscription, error) {
 	// Validate user exists
 	_, err := uc.userRepo.GetByID(ctx, userID)
 	if err != nil {
@@ -65,7 +71,7 @@ func (uc *SubscriptionUseCase) CreateSubscription(ctx context.Context, userID uu
 	return subscription, nil
 }
 
-func (uc *SubscriptionUseCase) SimulatePayment(ctx context.Context, subscriptionID uuid.UUID) error {
+func (uc *subscriptionUseCase) SimulatePayment(ctx context.Context, subscriptionID uuid.UUID) error {
 	// Get subscription
 	subscription, err := uc.subscriptionRepo.GetByID(ctx, subscriptionID)
 	if err != nil {

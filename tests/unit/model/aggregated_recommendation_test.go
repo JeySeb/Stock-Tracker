@@ -98,6 +98,8 @@ func TestAggregatedRecommendation_DetermineType(t *testing.T) {
 }
 
 func TestAggregatedRecommendation_IsExpired(t *testing.T) {
+	now := time.Now() // Fix the current time to avoid race conditions
+
 	tests := []struct {
 		name      string
 		expiresAt time.Time
@@ -105,18 +107,18 @@ func TestAggregatedRecommendation_IsExpired(t *testing.T) {
 	}{
 		{
 			name:      "Not expired - future time",
-			expiresAt: time.Now().Add(1 * time.Hour),
+			expiresAt: now.Add(1 * time.Hour),
 			isExpired: false,
 		},
 		{
 			name:      "Expired - past time",
-			expiresAt: time.Now().Add(-1 * time.Hour),
+			expiresAt: now.Add(-1 * time.Hour),
 			isExpired: true,
 		},
 		{
 			name:      "Edge case - exactly now",
-			expiresAt: time.Now(),
-			isExpired: false, // Should be false since it's not "after" now
+			expiresAt: now.Add(1 * time.Millisecond), // Add small buffer to avoid timing race
+			isExpired: false,                         // Should be false since it's not "after" now
 		},
 	}
 

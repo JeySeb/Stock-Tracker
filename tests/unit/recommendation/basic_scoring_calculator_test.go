@@ -6,89 +6,22 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 
-	"stock-tracker/internal/application/recommendation"
+	recommendationModel "stock-tracker/internal/domain/recommendation/model"
+	recommendationValidation "stock-tracker/internal/domain/recommendation/validation"
 	"stock-tracker/internal/domain/shared/enums"
 	stockModel "stock-tracker/internal/domain/stocks/model"
 	"stock-tracker/internal/domain/stocks/repositories"
+	"stock-tracker/tests/mocks"
 )
 
-// MockStockRepository implements the StockRepository interface for testing
-type MockStockRepository struct {
-	mock.Mock
-}
-
-func (m *MockStockRepository) GetByID(ctx context.Context, id interface{}) (*stockModel.Stock, error) {
-	args := m.Called(ctx, id)
-	return args.Get(0).(*stockModel.Stock), args.Error(1)
-}
-
-func (m *MockStockRepository) GetByTicker(ctx context.Context, ticker string) ([]*stockModel.Stock, error) {
-	args := m.Called(ctx, ticker)
-	return args.Get(0).([]*stockModel.Stock), args.Error(1)
-}
-
-func (m *MockStockRepository) GetBrokerageStats(ctx context.Context) ([]repositories.BrokerageStats, error) {
-	args := m.Called(ctx)
-	return args.Get(0).([]repositories.BrokerageStats), args.Error(1)
-}
-
-// Add other required methods to satisfy the interface
-func (m *MockStockRepository) Create(ctx context.Context, stock *stockModel.Stock) error {
-	return nil
-}
-
-func (m *MockStockRepository) Update(ctx context.Context, stock *stockModel.Stock) error {
-	return nil
-}
-
-func (m *MockStockRepository) Delete(ctx context.Context, id interface{}) error {
-	return nil
-}
-
-func (m *MockStockRepository) GetLatestByTicker(ctx context.Context, ticker string) (*stockModel.Stock, error) {
-	return nil, nil
-}
-
-func (m *MockStockRepository) GetAll(ctx context.Context, filters interface{}) ([]*stockModel.Stock, interface{}, error) {
-	return nil, nil, nil
-}
-
-func (m *MockStockRepository) GetRecentByTickers(ctx context.Context, since time.Time) (map[string][]*stockModel.Stock, error) {
-	args := m.Called(ctx, since)
-	return args.Get(0).(map[string][]*stockModel.Stock), args.Error(1)
-}
-
-func (m *MockStockRepository) BulkCreate(ctx context.Context, stocks []*stockModel.Stock) error {
-	return nil
-}
-
-func (m *MockStockRepository) BulkUpdate(ctx context.Context, stocks []*stockModel.Stock) error {
-	return nil
-}
-
-func (m *MockStockRepository) GetTopMoversByTarget(ctx context.Context, limit int) ([]*stockModel.Stock, error) {
-	return nil, nil
-}
-
-func (m *MockStockRepository) GetUniqueTickersCount(ctx context.Context) (int, error) {
-	return 0, nil
-}
-
-// MockLogger implements the logger interface for testing
-type MockLogger struct{}
-
-func (l *MockLogger) Debug(msg string, keysAndValues ...interface{}) {}
-func (l *MockLogger) Info(msg string, keysAndValues ...interface{})  {}
-func (l *MockLogger) Warn(msg string, keysAndValues ...interface{})  {}
-func (l *MockLogger) Error(msg string, keysAndValues ...interface{}) {}
+// Remove duplicate MockStockRepository - using centralized one from tests/mocks
 
 func TestBasicScoringCalculator_CalculateAggregatedRecommendation(t *testing.T) {
 	// Setup
-	mockRepo := new(MockStockRepository)
+	mockRepo := new(mocks.MockStockRepository)
 	mockLogger := &MockLogger{}
-	calculator := recommendation.NewBasicScoringCalculator(mockRepo, mockLogger)
+	calculator := recommendationValidation.NewBasicScoringCalculator(mockRepo, mockLogger)
 
 	ctx := context.Background()
 	ticker := "AAPL"
@@ -158,9 +91,9 @@ func TestBasicScoringCalculator_CalculateAggregatedRecommendation(t *testing.T) 
 
 func TestBasicScoringCalculator_NoDynamicBrokerCredibility(t *testing.T) {
 	// This test verifies that broker credibility is calculated dynamically, not hardcoded
-	mockRepo := new(MockStockRepository)
+	mockRepo := new(mocks.MockStockRepository)
 	mockLogger := &MockLogger{}
-	calculator := recommendation.NewBasicScoringCalculator(mockRepo, mockLogger)
+	calculator := recommendationValidation.NewBasicScoringCalculator(mockRepo, mockLogger)
 
 	ctx := context.Background()
 	ticker := "TEST"
@@ -208,7 +141,7 @@ func TestBasicScoringCalculator_NoDynamicBrokerCredibility(t *testing.T) {
 	assert.NotNil(t, result)
 
 	// Find the broker frequency factor
-	var brokerFreqFactor *stockModel.ScoringFactor
+	var brokerFreqFactor *recommendationModel.ScoringFactor
 	for _, factor := range result.ScoringFactors {
 		if factor.Name == "Broker Frequency" {
 			brokerFreqFactor = &factor
@@ -223,9 +156,9 @@ func TestBasicScoringCalculator_NoDynamicBrokerCredibility(t *testing.T) {
 }
 
 func TestBasicScoringCalculator_TargetMovementScoring(t *testing.T) {
-	mockRepo := new(MockStockRepository)
+	mockRepo := new(mocks.MockStockRepository)
 	mockLogger := &MockLogger{}
-	calculator := recommendation.NewBasicScoringCalculator(mockRepo, mockLogger)
+	calculator := recommendationValidation.NewBasicScoringCalculator(mockRepo, mockLogger)
 
 	ctx := context.Background()
 
@@ -280,7 +213,7 @@ func TestBasicScoringCalculator_TargetMovementScoring(t *testing.T) {
 			assert.NotNil(t, result)
 
 			// Find target movement factor
-			var targetFactor *stockModel.ScoringFactor
+			var targetFactor *recommendationModel.ScoringFactor
 			for _, factor := range result.ScoringFactors {
 				if factor.Name == "Target Movement" {
 					targetFactor = &factor
@@ -305,9 +238,9 @@ func TestBasicScoringCalculator_TargetMovementScoring(t *testing.T) {
 }
 
 func TestBasicScoringCalculator_RecencyScoring(t *testing.T) {
-	mockRepo := new(MockStockRepository)
+	mockRepo := new(mocks.MockStockRepository)
 	mockLogger := &MockLogger{}
-	calculator := recommendation.NewBasicScoringCalculator(mockRepo, mockLogger)
+	calculator := recommendationValidation.NewBasicScoringCalculator(mockRepo, mockLogger)
 
 	ctx := context.Background()
 
@@ -351,7 +284,7 @@ func TestBasicScoringCalculator_RecencyScoring(t *testing.T) {
 			assert.NotNil(t, result)
 
 			// Find recency factor
-			var recencyFactor *stockModel.ScoringFactor
+			var recencyFactor *recommendationModel.ScoringFactor
 			for _, factor := range result.ScoringFactors {
 				if factor.Name == "Recency" {
 					recencyFactor = &factor
@@ -377,9 +310,9 @@ func TestBasicScoringCalculator_RecencyScoring(t *testing.T) {
 
 func TestBasicScoringCalculator_NoHardcodedValues(t *testing.T) {
 	// This test verifies that no values are hardcoded in the scoring algorithm
-	mockRepo := new(MockStockRepository)
+	mockRepo := new(mocks.MockStockRepository)
 	mockLogger := &MockLogger{}
-	calculator := recommendation.NewBasicScoringCalculator(mockRepo, mockLogger)
+	calculator := recommendationValidation.NewBasicScoringCalculator(mockRepo, mockLogger)
 
 	ctx := context.Background()
 	ticker := "NOHARDCODE"
@@ -415,9 +348,9 @@ func TestBasicScoringCalculator_NoHardcodedValues(t *testing.T) {
 }
 
 func TestBasicScoringCalculator_ErrorHandling(t *testing.T) {
-	mockRepo := new(MockStockRepository)
+	mockRepo := new(mocks.MockStockRepository)
 	mockLogger := &MockLogger{}
-	calculator := recommendation.NewBasicScoringCalculator(mockRepo, mockLogger)
+	calculator := recommendationValidation.NewBasicScoringCalculator(mockRepo, mockLogger)
 
 	ctx := context.Background()
 	ticker := "ERROR"

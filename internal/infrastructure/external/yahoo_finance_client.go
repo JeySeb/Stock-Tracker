@@ -3,14 +3,45 @@ package external
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
+	"strings"
 	"time"
 
 	"stock-tracker/internal/domain/recommendation/model"
 	"stock-tracker/pkg/logger"
 )
+
+// Custom error types for better error handling
+var (
+	ErrInvalidSymbol    = errors.New("invalid or empty symbol")
+	ErrAPIQuotaExceeded = errors.New("API quota exceeded")
+	ErrSymbolNotFound   = errors.New("symbol not found")
+	ErrAPIUnavailable   = errors.New("API service unavailable")
+	ErrInvalidResponse  = errors.New("invalid API response")
+)
+
+// ClientConfig holds configuration for external API clients
+type ClientConfig struct {
+	Timeout        time.Duration
+	MaxRetries     int
+	RetryDelay     time.Duration
+	UserAgent      string
+	RateLimitDelay time.Duration
+}
+
+// DefaultClientConfig returns default configuration
+func DefaultClientConfig() *ClientConfig {
+	return &ClientConfig{
+		Timeout:        15 * time.Second,
+		MaxRetries:     3,
+		RetryDelay:     1 * time.Second,
+		UserAgent:      "Mozilla/5.0 (compatible; StockTracker/1.0)",
+		RateLimitDelay: 100 * time.Millisecond,
+	}
+}
 
 // YahooFinanceClient defines the interface for Yahoo Finance API integration
 type YahooFinanceClient interface {
@@ -23,6 +54,7 @@ type yahooFinanceClient struct {
 	baseURL    string
 	httpClient *http.Client
 	logger     logger.Logger
+	config     *ClientConfig
 }
 
 // YahooQuoteResponse represents the response structure from Yahoo Finance API
@@ -57,21 +89,105 @@ type HistoricalDataPoint struct {
 	Volume int64     `json:"volume"`
 }
 
-// NewYahooFinanceClient creates a new Yahoo Finance client instance
-func NewYahooFinanceClient(logger logger.Logger) YahooFinanceClient {
+// NewYahooFinanceClient creates a new Yahoo Finance client instance with optional configuration
+func NewYahooFinanceClient(logger logger.Logger, config ...*ClientConfig) YahooFinanceClient {
+	clientConfig := DefaultClientConfig()
+	if len(config) > 0 && config[0] != nil {
+		clientConfig = config[0]
+	}
+
 	return &yahooFinanceClient{
 		baseURL: "https://query1.finance.yahoo.com/v8/finance/chart/",
 		httpClient: &http.Client{
-			Timeout: 10 * time.Second,
+			Timeout: clientConfig.Timeout,
 		},
 		logger: logger,
+		config: clientConfig,
 	}
+}
+
+// validateSymbol validates the input symbol
+func (c *yahooFinanceClient) validateSymbol(symbol string) error {
+	if symbol == "" {
+		return ErrInvalidSymbol
+	}
+
+	symbol = strings.TrimSpace(symbol)
+	if len(symbol) == 0 || len(symbol) > 10 {
+		return ErrInvalidSymbol
+	}
+
+	// Basic validation for special characters
+	for _, char := range symbol {
+		if !((char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '.' || char == '-') {
+			return ErrInvalidSymbol
+		}
+	}
+
+	return nil
+}
+
+// executeWithRetry executes an HTTP request with retry logic
+func (c *yahooFinanceClient) executeWithRetry(ctx context.Context, req *http.Request) (*http.Response, error) {
+	var lastErr error
+
+	for attempt := 0; attempt <= c.config.MaxRetries; attempt++ {
+		if attempt > 0 {
+			// Rate limiting delay between retries
+			select {
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			case <-time.After(c.config.RetryDelay * time.Duration(attempt)):
+			}
+
+			c.logger.Debug("Retrying request",
+				"attempt", attempt,
+				"url", req.URL.String())
+		}
+
+		resp, err := c.httpClient.Do(req)
+		if err != nil {
+			lastErr = fmt.Errorf("request attempt %d failed: %w", attempt+1, err)
+			continue
+		}
+
+		// Success cases
+		if resp.StatusCode == http.StatusOK {
+			return resp, nil
+		}
+
+		// Handle specific HTTP status codes
+		switch resp.StatusCode {
+		case http.StatusTooManyRequests:
+			resp.Body.Close()
+			lastErr = ErrAPIQuotaExceeded
+			continue
+		case http.StatusNotFound:
+			resp.Body.Close()
+			return nil, ErrSymbolNotFound
+		case http.StatusServiceUnavailable, http.StatusBadGateway:
+			resp.Body.Close()
+			lastErr = ErrAPIUnavailable
+			continue
+		default:
+			resp.Body.Close()
+			lastErr = fmt.Errorf("API returned status %d", resp.StatusCode)
+			continue
+		}
+	}
+
+	return nil, fmt.Errorf("all retry attempts failed: %w", lastErr)
 }
 
 // GetQuote retrieves real-time quote data for a given symbol
 func (c *yahooFinanceClient) GetQuote(ctx context.Context, symbol string) (*model.ExternalStockData, error) {
+	// Validate input
+	if err := c.validateSymbol(symbol); err != nil {
+		return nil, fmt.Errorf("symbol validation failed: %w", err)
+	}
+
 	// Build URL
-	requestURL := fmt.Sprintf("%s%s", c.baseURL, url.QueryEscape(symbol))
+	requestURL := fmt.Sprintf("%s%s", c.baseURL, url.QueryEscape(strings.ToUpper(strings.TrimSpace(symbol))))
 
 	// Create request with context
 	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
@@ -79,41 +195,112 @@ func (c *yahooFinanceClient) GetQuote(ctx context.Context, symbol string) (*mode
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// Set headers to mimic browser request
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
+	// Set headers
+	req.Header.Set("User-Agent", c.config.UserAgent)
+	req.Header.Set("Accept", "application/json")
 
-	// Execute request
-	resp, err := c.httpClient.Do(req)
+	c.logger.Debug("Making Yahoo Finance API request",
+		"symbol", symbol,
+		"url", requestURL)
+
+	// Execute request with retry logic
+	resp, err := c.executeWithRetry(ctx, req)
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute request: %w", err)
+		c.logger.Error("Failed to execute Yahoo Finance request",
+			"symbol", symbol,
+			"error", err)
+		return nil, fmt.Errorf("failed to execute request for symbol %s: %w", symbol, err)
 	}
 	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("API returned status %d for symbol %s", resp.StatusCode, symbol)
-	}
 
 	// Parse response
 	var yahooResp YahooQuoteResponse
 	if err := json.NewDecoder(resp.Body).Decode(&yahooResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+		return nil, fmt.Errorf("failed to decode response for symbol %s: %w", symbol, err)
 	}
 
-	// Check for API errors
-	if yahooResp.Chart.Error != nil {
-		return nil, fmt.Errorf("Yahoo Finance API error: %v", yahooResp.Chart.Error)
+	// Validate response structure
+	if err := c.validateYahooResponse(&yahooResp, symbol); err != nil {
+		return nil, err
 	}
 
-	if len(yahooResp.Chart.Result) == 0 {
-		return nil, fmt.Errorf("no data found for symbol %s", symbol)
-	}
-
-	// Extract data
+	// Extract and convert data
 	result := yahooResp.Chart.Result[0].Meta
+	return c.convertYahooDataToModel(&result, symbol)
+}
 
-	// Calculate day change
+// validateYahooResponse validates the Yahoo Finance API response
+func (c *yahooFinanceClient) validateYahooResponse(resp *YahooQuoteResponse, symbol string) error {
+	// Check for API errors
+	if resp.Chart.Error != nil {
+		c.logger.Error("Yahoo Finance API returned error",
+			"symbol", symbol,
+			"error", resp.Chart.Error)
+		return fmt.Errorf("Yahoo Finance API error for symbol %s: %v", symbol, resp.Chart.Error)
+	}
+
+	if len(resp.Chart.Result) == 0 {
+		c.logger.Warn("No data found for symbol", "symbol", symbol)
+		return fmt.Errorf("%w: %s", ErrSymbolNotFound, symbol)
+	}
+
+	return nil
+}
+
+// convertYahooDataToModel converts Yahoo Finance response to internal model
+func (c *yahooFinanceClient) convertYahooDataToModel(result *struct {
+	Currency                 string  `json:"currency"`
+	Symbol                   string  `json:"symbol"`
+	RegularMarketPrice       float64 `json:"regularMarketPrice"`
+	PreviousClose            float64 `json:"previousClose"`
+	RegularMarketVolume      int64   `json:"regularMarketVolume"`
+	MarketCap                int64   `json:"marketCap"`
+	TrailingPE               float64 `json:"trailingPE"`
+	DividendYield            float64 `json:"dividendYield"`
+	FiftyTwoWeekHigh         float64 `json:"fiftyTwoWeekHigh"`
+	FiftyTwoWeekLow          float64 `json:"fiftyTwoWeekLow"`
+	AverageDailyVolume3Month int64   `json:"averageDailyVolume3Month"`
+}, symbol string) (*model.ExternalStockData, error) {
+
+	// Validate essential data
+	if result.RegularMarketPrice <= 0 {
+		return nil, fmt.Errorf("invalid price data for symbol %s", symbol)
+	}
+
+	if result.PreviousClose <= 0 {
+		c.logger.Warn("Invalid previous close price",
+			"symbol", symbol,
+			"previous_close", result.PreviousClose)
+		// Don't fail completely, but set day change to 0
+		result.PreviousClose = result.RegularMarketPrice
+	}
+
+	// Calculate day change safely
 	dayChange := result.RegularMarketPrice - result.PreviousClose
-	dayChangePercent := (dayChange / result.PreviousClose) * 100
+	dayChangePercent := 0.0
+	if result.PreviousClose > 0 {
+		dayChangePercent = (dayChange / result.PreviousClose) * 100
+	}
+
+	// Convert optional fields safely
+	var pERatio, dividendYield, week52High, week52Low *float64
+	var avgVolume *int64
+
+	if result.TrailingPE > 0 {
+		pERatio = &result.TrailingPE
+	}
+	if result.DividendYield > 0 {
+		dividendYield = &result.DividendYield
+	}
+	if result.FiftyTwoWeekHigh > 0 {
+		week52High = &result.FiftyTwoWeekHigh
+	}
+	if result.FiftyTwoWeekLow > 0 {
+		week52Low = &result.FiftyTwoWeekLow
+	}
+	if result.AverageDailyVolume3Month > 0 {
+		avgVolume = &result.AverageDailyVolume3Month
+	}
 
 	return &model.ExternalStockData{
 		CurrentPrice:     result.RegularMarketPrice,
@@ -121,19 +308,31 @@ func (c *yahooFinanceClient) GetQuote(ctx context.Context, symbol string) (*mode
 		DayChangePercent: dayChangePercent,
 		Volume:           result.RegularMarketVolume,
 		MarketCap:        result.MarketCap,
-		PERatio:          &result.TrailingPE,
-		DividendYield:    &result.DividendYield,
-		Week52High:       &result.FiftyTwoWeekHigh,
-		Week52Low:        &result.FiftyTwoWeekLow,
-		AvgVolume:        &result.AverageDailyVolume3Month,
+		PERatio:          pERatio,
+		DividendYield:    dividendYield,
+		Week52High:       week52High,
+		Week52Low:        week52Low,
+		AvgVolume:        avgVolume,
 		LastUpdated:      time.Now(),
 	}, nil
 }
 
 // GetHistoricalData retrieves historical price data for trend analysis
 func (c *yahooFinanceClient) GetHistoricalData(ctx context.Context, symbol string, period string) ([]HistoricalDataPoint, error) {
+	// Validate input
+	if err := c.validateSymbol(symbol); err != nil {
+		return nil, fmt.Errorf("symbol validation failed: %w", err)
+	}
+
+	if period == "" {
+		return nil, errors.New("period cannot be empty")
+	}
+
 	// For now, return empty slice - this can be implemented later for advanced features
-	c.logger.Info("Historical data requested", "symbol", symbol, "period", period)
+	c.logger.Info("Historical data requested",
+		"symbol", symbol,
+		"period", period)
+
 	return []HistoricalDataPoint{}, nil
 }
 

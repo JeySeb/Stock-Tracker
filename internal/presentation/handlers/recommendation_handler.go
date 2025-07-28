@@ -8,7 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 
-	"stock-tracker/internal/application/usecases"
+	recommendationUsecase "stock-tracker/internal/domain/recommendation/usecase"
 	"stock-tracker/internal/domain/shared/enums"
 	"stock-tracker/internal/infrastructure/middleware"
 	"stock-tracker/pkg/logger"
@@ -16,13 +16,13 @@ import (
 
 // RecommendationHandler handles HTTP requests for recommendations
 type RecommendationHandler struct {
-	recommendationUC *usecases.TieredRecommendationUseCase
+	recommendationUC recommendationUsecase.RecommendationUseCase
 	logger           logger.Logger
 }
 
 // NewRecommendationHandler creates a new recommendation handler
 func NewRecommendationHandler(
-	recommendationUC *usecases.TieredRecommendationUseCase,
+	recommendationUC recommendationUsecase.RecommendationUseCase,
 	logger logger.Logger,
 ) *RecommendationHandler {
 	return &RecommendationHandler{
@@ -46,10 +46,10 @@ func (h *RecommendationHandler) GetRecommendations(w http.ResponseWriter, r *htt
 	excludeTickers := h.parseStringSliceParam(r.URL.Query().Get("exclude"))
 
 	// 3. Build request
-	request := usecases.RecommendationRequest{
+	request := recommendationUsecase.RecommendationRequest{
 		UserTier: userTier,
 		Limit:    limit,
-		Filters: usecases.RecommendationFilters{
+		Filters: recommendationUsecase.RecommendationFilters{
 			MinScore:           minScore,
 			RecommendationType: recommendationType,
 			ExcludeTickers:     excludeTickers,
@@ -105,9 +105,20 @@ func (h *RecommendationHandler) GetRecommendationByTicker(w http.ResponseWriter,
 	if len(ticker) < 1 || len(ticker) > 10 {
 		render.Status(r, http.StatusBadRequest)
 		render.JSON(w, r, map[string]string{
-			"error": "Invalid ticker format",
+			"error": "Ticker must be between 1 and 10 characters",
 		})
 		return
+	}
+
+	// Validate ticker contains only letters and numbers
+	for _, char := range ticker {
+		if !((char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9')) {
+			render.Status(r, http.StatusBadRequest)
+			render.JSON(w, r, map[string]string{
+				"error": "Ticker contains invalid characters",
+			})
+			return
+		}
 	}
 
 	// 2. Extract user tier
@@ -212,18 +223,18 @@ func (h *RecommendationHandler) GetRecommendationPreview(w http.ResponseWriter, 
 
 // filterResponseByTier filters the entire response based on user tier
 func (h *RecommendationHandler) filterResponseByTier(
-	response *usecases.RecommendationResponse,
+	response *recommendationUsecase.RecommendationResponse,
 	userTier enums.UserTier,
-) *usecases.RecommendationResponse {
+) *recommendationUsecase.RecommendationResponse {
 
 	filteredData := make([]*struct {
-		*usecases.RecommendationResponse
+		*recommendationUsecase.RecommendationResponse
 		Data interface{} `json:"data"`
 	}, len(response.Data))
 
 	for i, rec := range response.Data {
 		filteredData[i] = &struct {
-			*usecases.RecommendationResponse
+			*recommendationUsecase.RecommendationResponse
 			Data interface{} `json:"data"`
 		}{
 			Data: h.filterSingleRecommendationByTier(rec, userTier),

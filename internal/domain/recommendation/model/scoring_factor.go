@@ -1,6 +1,6 @@
 package model
 
-import "github.com/stock-tracker/internal/domain/shared/enums"
+import "stock-tracker/internal/domain/shared/enums"
 
 type ScoringFactor struct {
 	Name        string                   `json:"name"`

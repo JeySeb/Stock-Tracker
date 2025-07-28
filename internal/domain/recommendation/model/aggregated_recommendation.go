@@ -3,8 +3,9 @@ package model
 import (
 	"time"
 
+	"stock-tracker/internal/domain/shared/enums"
+
 	"github.com/google/uuid"
-	"github.com/stock-tracker/internal/domain/shared/enums"
 )
 
 // AggregatedRecommendation represents a consolidated recommendation based on multiple stock events

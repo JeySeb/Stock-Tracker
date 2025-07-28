@@ -278,18 +278,9 @@ func TestInMemoryCache_ComplexDataTypes(t *testing.T) {
 			var result interface{}
 			err = c.Get(ctx, tt.key, &result)
 
-			// Note: In this simple implementation, complex types might not work
-			// This test documents the current behavior
-			if tt.name == "String value" || tt.name == "Integer value" ||
-				tt.name == "Float value" || tt.name == "Boolean value" {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.value, result)
-			} else {
-				// For complex types, current implementation returns cache miss
-				// This is a limitation of the simple implementation
-				assert.Error(t, err)
-				assert.Equal(t, cache.ErrCacheMiss, err)
-			}
+			// Cache should now handle all types correctly with reflection-based implementation
+			assert.NoError(t, err)
+			assert.Equal(t, tt.value, result)
 		})
 	}
 }

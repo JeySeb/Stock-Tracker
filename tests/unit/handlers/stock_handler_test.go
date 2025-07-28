@@ -30,11 +30,17 @@ func (m *mockStockUseCase) GetStocks(ctx context.Context, filters stockValidatio
 
 func (m *mockStockUseCase) GetStocksByTicker(ctx context.Context, ticker string) (interface{}, error) {
 	args := m.Called(ctx, ticker)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).([]*stockModel.Stock), args.Error(1)
 }
 
 func (m *mockStockUseCase) GetStats(ctx context.Context) (interface{}, error) {
 	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	return args.Get(0).(map[string]interface{}), args.Error(1)
 }
 
@@ -61,7 +67,7 @@ func TestStockHandler_GetStocks_Success(t *testing.T) {
 		HasPrev:    false,
 	}
 
-	mockUseCase.On("GetStocks", mock.MatchedBy(func(ctx context.Context) bool { return true }), mock.AnythingOfType("stockValidation.StockFilters")).
+	mockUseCase.On("GetStocks", mock.MatchedBy(func(ctx context.Context) bool { return true }), mock.AnythingOfType("validation.StockFilters")).
 		Return(testStocks, pagination, nil)
 
 	req := httptest.NewRequest("GET", "/stocks?ticker=AAPL&limit=10&offset=0", nil)
@@ -144,7 +150,7 @@ func TestStockHandler_GetStocks_UseCaseError(t *testing.T) {
 	handler := handlers.NewStockHandler(mockUseCase, mockLogger)
 
 	expectedError := errors.New("database connection failed")
-	mockUseCase.On("GetStocks", mock.MatchedBy(func(ctx context.Context) bool { return true }), mock.AnythingOfType("stockValidation.StockFilters")).
+	mockUseCase.On("GetStocks", mock.MatchedBy(func(ctx context.Context) bool { return true }), mock.AnythingOfType("validation.StockFilters")).
 		Return(nil, (*stockValidation.Pagination)(nil), expectedError)
 
 	mockLogger.On("Error", "Failed to get stocks", "error", mock.Anything).Return()
@@ -481,7 +487,7 @@ func TestStockHandler_Integration(t *testing.T) {
 		{Ticker: "AAPL", Company: "Apple Inc."},
 	}
 
-	mockUseCase.On("GetStocks", mock.MatchedBy(func(ctx context.Context) bool { return true }), mock.AnythingOfType("stockValidation.StockFilters")).
+	mockUseCase.On("GetStocks", mock.MatchedBy(func(ctx context.Context) bool { return true }), mock.AnythingOfType("validation.StockFilters")).
 		Return(testStocks, &stockValidation.Pagination{}, nil)
 
 	req := httptest.NewRequest("GET", "/api/v1/stocks?ticker=AAPL", nil)

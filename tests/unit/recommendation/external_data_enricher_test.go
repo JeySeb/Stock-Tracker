@@ -9,8 +9,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"stock-tracker/internal/application/recommendation"
-	"stock-tracker/internal/domain/recommendation/model"
+	recommendationModel "stock-tracker/internal/domain/recommendation/model"
+	recommendationValidation "stock-tracker/internal/domain/recommendation/validation"
 	"stock-tracker/internal/domain/shared/enums"
 	"stock-tracker/internal/infrastructure/cache"
 	"stock-tracker/internal/infrastructure/external"
@@ -21,12 +21,12 @@ type MockYahooFinanceClient struct {
 	mock.Mock
 }
 
-func (m *MockYahooFinanceClient) GetQuote(ctx context.Context, symbol string) (*model.ExternalStockData, error) {
+func (m *MockYahooFinanceClient) GetQuote(ctx context.Context, symbol string) (*recommendationModel.ExternalStockData, error) {
 	args := m.Called(ctx, symbol)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*model.ExternalStockData), args.Error(1)
+	return args.Get(0).(*recommendationModel.ExternalStockData), args.Error(1)
 }
 
 func (m *MockYahooFinanceClient) GetHistoricalData(ctx context.Context, symbol string, period string) ([]external.HistoricalDataPoint, error) {
@@ -39,12 +39,12 @@ type MockAlphaVantageClient struct {
 	mock.Mock
 }
 
-func (m *MockAlphaVantageClient) GetQuote(ctx context.Context, symbol string) (*model.ExternalStockData, error) {
+func (m *MockAlphaVantageClient) GetQuote(ctx context.Context, symbol string) (*recommendationModel.ExternalStockData, error) {
 	args := m.Called(ctx, symbol)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*model.ExternalStockData), args.Error(1)
+	return args.Get(0).(*recommendationModel.ExternalStockData), args.Error(1)
 }
 
 func (m *MockAlphaVantageClient) GetCompanyOverview(ctx context.Context, symbol string) (*external.CompanyOverview, error) {
@@ -87,10 +87,10 @@ func TestExternalDataEnricher_EnrichRecommendation_Success(t *testing.T) {
 	mockCache := new(MockCache)
 	mockLogger := &MockLogger{}
 
-	enricher := recommendation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
+	enricher := recommendationValidation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
 
 	// Test data
-	baseRecommendation := &model.AggregatedRecommendation{
+	baseRecommendation := &recommendationModel.AggregatedRecommendation{
 		Ticker:            "AAPL",
 		CompanyName:       "Apple Inc.",
 		LatestTargetPrice: 180.0,
@@ -98,7 +98,7 @@ func TestExternalDataEnricher_EnrichRecommendation_Success(t *testing.T) {
 		Tier:              enums.RECOMMENDATION_TIER_BASIC,
 	}
 
-	externalData := &model.ExternalStockData{
+	externalData := &recommendationModel.ExternalStockData{
 		CurrentPrice:     170.0,
 		DayChange:        2.5,
 		DayChangePercent: 1.5,
@@ -140,9 +140,9 @@ func TestExternalDataEnricher_EnrichRecommendation_CacheHit(t *testing.T) {
 	mockCache := new(MockCache)
 	mockLogger := &MockLogger{}
 
-	enricher := recommendation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
+	enricher := recommendationValidation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
 
-	baseRecommendation := &model.AggregatedRecommendation{
+	baseRecommendation := &recommendationModel.AggregatedRecommendation{
 		Ticker:            "AAPL",
 		CompanyName:       "Apple Inc.",
 		LatestTargetPrice: 180.0,
@@ -151,7 +151,19 @@ func TestExternalDataEnricher_EnrichRecommendation_CacheHit(t *testing.T) {
 	}
 
 	// Mock cache hit - should not call external APIs
-	mockCache.On("Get", mock.Anything, "external_data:AAPL", mock.Anything).Return(nil)
+	peRatio := 25.5
+	cachedData := &recommendationModel.ExternalStockData{
+		CurrentPrice: 150.0,
+		Volume:       1000000,
+		MarketCap:    2500000000000,
+		PERatio:      &peRatio,
+		LastUpdated:  time.Now(),
+	}
+	mockCache.On("Get", mock.Anything, "external_data:AAPL", mock.Anything).Run(func(args mock.Arguments) {
+		// Set the cached data through the pointer
+		ptr := args.Get(2).(**recommendationModel.ExternalStockData)
+		*ptr = cachedData
+	}).Return(nil)
 
 	// Execute
 	result, err := enricher.EnrichRecommendation(context.Background(), baseRecommendation)
@@ -172,16 +184,16 @@ func TestExternalDataEnricher_EnrichRecommendation_YahooFailsAlphaVantageWorks(t
 	mockCache := new(MockCache)
 	mockLogger := &MockLogger{}
 
-	enricher := recommendation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
+	enricher := recommendationValidation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
 
-	baseRecommendation := &model.AggregatedRecommendation{
+	baseRecommendation := &recommendationModel.AggregatedRecommendation{
 		Ticker:      "AAPL",
 		CompanyName: "Apple Inc.",
 		BasicScore:  0.7,
 		Tier:        enums.RECOMMENDATION_TIER_BASIC,
 	}
 
-	externalData := &model.ExternalStockData{
+	externalData := &recommendationModel.ExternalStockData{
 		CurrentPrice: 170.0,
 		LastUpdated:  time.Now(),
 	}
@@ -214,9 +226,9 @@ func TestExternalDataEnricher_EnrichRecommendation_GracefulDegradation(t *testin
 	mockCache := new(MockCache)
 	mockLogger := &MockLogger{}
 
-	enricher := recommendation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
+	enricher := recommendationValidation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
 
-	baseRecommendation := &model.AggregatedRecommendation{
+	baseRecommendation := &recommendationModel.AggregatedRecommendation{
 		Ticker:      "AAPL",
 		CompanyName: "Apple Inc.",
 		BasicScore:  0.7,
@@ -248,7 +260,7 @@ func TestExternalDataEnricher_UpsidePotentialCalculation(t *testing.T) {
 	mockCache := new(MockCache)
 	mockLogger := &MockLogger{}
 
-	enricher := recommendation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
+	enricher := recommendationValidation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
 
 	tests := []struct {
 		name               string
@@ -278,13 +290,13 @@ func TestExternalDataEnricher_UpsidePotentialCalculation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			baseRecommendation := &model.AggregatedRecommendation{
+			baseRecommendation := &recommendationModel.AggregatedRecommendation{
 				Ticker:            "TEST",
 				LatestTargetPrice: tt.targetPrice,
 				BasicScore:        0.5,
 			}
 
-			externalData := &model.ExternalStockData{
+			externalData := &recommendationModel.ExternalStockData{
 				CurrentPrice: tt.currentPrice,
 			}
 
@@ -299,7 +311,7 @@ func TestExternalDataEnricher_UpsidePotentialCalculation(t *testing.T) {
 			assert.NotNil(t, result)
 
 			// Find upside potential factor
-			var upsideFactor *model.ScoringFactor
+			var upsideFactor *recommendationModel.ScoringFactor
 			for _, factor := range result.ScoringFactors {
 				if factor.Name == "Real-time Upside Potential" {
 					upsideFactor = &factor
@@ -333,7 +345,7 @@ func TestExternalDataEnricher_VolumeActivityScoring(t *testing.T) {
 	mockCache := new(MockCache)
 	mockLogger := &MockLogger{}
 
-	enricher := recommendation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
+	enricher := recommendationValidation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
 
 	tests := []struct {
 		name          string
@@ -363,12 +375,12 @@ func TestExternalDataEnricher_VolumeActivityScoring(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			baseRecommendation := &model.AggregatedRecommendation{
+			baseRecommendation := &recommendationModel.AggregatedRecommendation{
 				Ticker:     "TEST",
 				BasicScore: 0.5,
 			}
 
-			externalData := &model.ExternalStockData{
+			externalData := &recommendationModel.ExternalStockData{
 				CurrentPrice: 100.0,
 				Volume:       tt.currentVolume,
 				AvgVolume:    &tt.avgVolume,
@@ -383,7 +395,7 @@ func TestExternalDataEnricher_VolumeActivityScoring(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Find volume activity factor
-			var volumeFactor *model.ScoringFactor
+			var volumeFactor *recommendationModel.ScoringFactor
 			for _, factor := range result.ScoringFactors {
 				if factor.Name == "Volume Activity" {
 					volumeFactor = &factor
@@ -417,9 +429,9 @@ func TestExternalDataEnricher_GetEnrichmentPreview(t *testing.T) {
 	mockCache := new(MockCache)
 	mockLogger := &MockLogger{}
 
-	enricher := recommendation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
+	enricher := recommendationValidation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
 
-	externalData := &model.ExternalStockData{
+	externalData := &recommendationModel.ExternalStockData{
 		CurrentPrice: 170.0,
 		Volume:       1000000,
 		LastUpdated:  time.Now(),
@@ -449,7 +461,7 @@ func TestExternalDataEnricher_ErrorHandling(t *testing.T) {
 	mockCache := new(MockCache)
 	mockLogger := &MockLogger{}
 
-	enricher := recommendation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
+	enricher := recommendationValidation.NewExternalDataEnricher(mockYahoo, mockAlpha, mockCache, mockLogger)
 
 	tests := []struct {
 		name            string
@@ -459,7 +471,7 @@ func TestExternalDataEnricher_ErrorHandling(t *testing.T) {
 		{
 			name: "Cache error should not affect enrichment",
 			setupMocks: func() {
-				externalData := &model.ExternalStockData{CurrentPrice: 100.0}
+				externalData := &recommendationModel.ExternalStockData{CurrentPrice: 100.0}
 				mockCache.On("Get", mock.Anything, "external_data:TEST", mock.Anything).Return(cache.ErrCacheMiss)
 				mockYahoo.On("GetQuote", mock.Anything, "TEST").Return(externalData, nil)
 				mockCache.On("Set", mock.Anything, "external_data:TEST", externalData, 5*time.Minute).Return(errors.New("cache error"))
@@ -489,7 +501,7 @@ func TestExternalDataEnricher_ErrorHandling(t *testing.T) {
 
 			tt.setupMocks()
 
-			baseRecommendation := &model.AggregatedRecommendation{
+			baseRecommendation := &recommendationModel.AggregatedRecommendation{
 				Ticker:     "TEST",
 				BasicScore: 0.5,
 			}

@@ -14,32 +14,32 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"stock-tracker/internal/application/usecases"
-	"stock-tracker/internal/domain/recommendation/model"
+	recommendationModel "stock-tracker/internal/domain/recommendation/model"
+	recommendationUsecase "stock-tracker/internal/domain/recommendation/usecase"
 	"stock-tracker/internal/domain/shared/enums"
 	"stock-tracker/internal/infrastructure/middleware"
 	"stock-tracker/internal/presentation/handlers"
 )
 
-// MockTieredRecommendationUseCase mock implementation
-type MockTieredRecommendationUseCase struct {
+// MockRecommendationUseCase mock implementation
+type MockRecommendationUseCase struct {
 	mock.Mock
 }
 
-func (m *MockTieredRecommendationUseCase) GetRecommendations(ctx context.Context, request usecases.RecommendationRequest) (*usecases.RecommendationResponse, error) {
+func (m *MockRecommendationUseCase) GetRecommendations(ctx context.Context, request recommendationUsecase.RecommendationRequest) (*recommendationUsecase.RecommendationResponse, error) {
 	args := m.Called(ctx, request)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*usecases.RecommendationResponse), args.Error(1)
+	return args.Get(0).(*recommendationUsecase.RecommendationResponse), args.Error(1)
 }
 
-func (m *MockTieredRecommendationUseCase) GetRecommendationByTicker(ctx context.Context, ticker string, userTier enums.UserTier) (*model.AggregatedRecommendation, error) {
+func (m *MockRecommendationUseCase) GetRecommendationByTicker(ctx context.Context, ticker string, userTier enums.UserTier) (*recommendationModel.AggregatedRecommendation, error) {
 	args := m.Called(ctx, ticker, userTier)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*model.AggregatedRecommendation), args.Error(1)
+	return args.Get(0).(*recommendationModel.AggregatedRecommendation), args.Error(1)
 }
 
 // MockLogger implementation
@@ -52,13 +52,13 @@ func (l *MockLogger) Error(msg string, keysAndValues ...interface{}) {}
 
 func TestRecommendationHandler_GetRecommendations_GuestUser(t *testing.T) {
 	// Setup
-	mockUseCase := new(MockTieredRecommendationUseCase)
+	mockUseCase := new(MockRecommendationUseCase)
 	mockLogger := &MockLogger{}
 	handler := handlers.NewRecommendationHandler(mockUseCase, mockLogger)
 
 	// Test data
-	expectedResponse := &usecases.RecommendationResponse{
-		Data: []*model.AggregatedRecommendation{
+	expectedResponse := &recommendationUsecase.RecommendationResponse{
+		Data: []*recommendationModel.AggregatedRecommendation{
 			{
 				Ticker:      "AAPL",
 				CompanyName: "Apple Inc.",
@@ -66,7 +66,7 @@ func TestRecommendationHandler_GetRecommendations_GuestUser(t *testing.T) {
 				Tier:        enums.RECOMMENDATION_TIER_BASIC,
 			},
 		},
-		Meta: usecases.RecommendationMeta{
+		Meta: recommendationUsecase.RecommendationMeta{
 			Count:          1,
 			UserTier:       enums.TIER_GUEST,
 			Features:       []string{"basic_recommendations", "market_analytics"},
@@ -76,8 +76,8 @@ func TestRecommendationHandler_GetRecommendations_GuestUser(t *testing.T) {
 	}
 
 	// Mock expectations
-	mockUseCase.On("GetRecommendations", mock.Anything, mock.MatchedBy(func(req usecases.RecommendationRequest) bool {
-		return req.UserTier == enums.TIER_GUEST && req.Limit == 10 // Default limit for guests
+	mockUseCase.On("GetRecommendations", mock.Anything, mock.MatchedBy(func(req recommendationUsecase.RecommendationRequest) bool {
+		return req.UserTier == enums.TIER_GUEST && req.Limit == 5 // Handler passes original request, usecase applies limits
 	})).Return(expectedResponse, nil)
 
 	// Create request
@@ -91,7 +91,7 @@ func TestRecommendationHandler_GetRecommendations_GuestUser(t *testing.T) {
 	// Assert
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var response usecases.RecommendationResponse
+	var response recommendationUsecase.RecommendationResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, response.Meta.Count)
@@ -104,24 +104,24 @@ func TestRecommendationHandler_GetRecommendations_GuestUser(t *testing.T) {
 
 func TestRecommendationHandler_GetRecommendations_BasicUser(t *testing.T) {
 	// Setup
-	mockUseCase := new(MockTieredRecommendationUseCase)
+	mockUseCase := new(MockRecommendationUseCase)
 	mockLogger := &MockLogger{}
 	handler := handlers.NewRecommendationHandler(mockUseCase, mockLogger)
 
 	// Test data
-	expectedResponse := &usecases.RecommendationResponse{
-		Data: []*model.AggregatedRecommendation{
+	expectedResponse := &recommendationUsecase.RecommendationResponse{
+		Data: []*recommendationModel.AggregatedRecommendation{
 			{
 				Ticker:      "AAPL",
 				CompanyName: "Apple Inc.",
 				BasicScore:  0.85,
 				Tier:        enums.RECOMMENDATION_TIER_ENRICHED,
-				ExternalData: &model.ExternalStockData{
+				ExternalData: &recommendationModel.ExternalStockData{
 					CurrentPrice: 170.0,
 				},
 			},
 		},
-		Meta: usecases.RecommendationMeta{
+		Meta: recommendationUsecase.RecommendationMeta{
 			Count:    1,
 			UserTier: enums.TIER_BASIC,
 			Features: []string{"basic_recommendations", "market_analytics", "real_time_data", "external_apis", "advanced_analytics"},
@@ -130,7 +130,7 @@ func TestRecommendationHandler_GetRecommendations_BasicUser(t *testing.T) {
 	}
 
 	// Mock expectations
-	mockUseCase.On("GetRecommendations", mock.Anything, mock.MatchedBy(func(req usecases.RecommendationRequest) bool {
+	mockUseCase.On("GetRecommendations", mock.Anything, mock.MatchedBy(func(req recommendationUsecase.RecommendationRequest) bool {
 		return req.UserTier == enums.TIER_BASIC && req.Limit == 20
 	})).Return(expectedResponse, nil)
 
@@ -146,7 +146,7 @@ func TestRecommendationHandler_GetRecommendations_BasicUser(t *testing.T) {
 	// Assert
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var response usecases.RecommendationResponse
+	var response recommendationUsecase.RecommendationResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, enums.TIER_BASIC, response.Meta.UserTier)
@@ -158,13 +158,13 @@ func TestRecommendationHandler_GetRecommendations_BasicUser(t *testing.T) {
 
 func TestRecommendationHandler_GetRecommendations_WithFilters(t *testing.T) {
 	// Setup
-	mockUseCase := new(MockTieredRecommendationUseCase)
+	mockUseCase := new(MockRecommendationUseCase)
 	mockLogger := &MockLogger{}
 	handler := handlers.NewRecommendationHandler(mockUseCase, mockLogger)
 
 	// Test data
-	expectedResponse := &usecases.RecommendationResponse{
-		Data: []*model.AggregatedRecommendation{
+	expectedResponse := &recommendationUsecase.RecommendationResponse{
+		Data: []*recommendationModel.AggregatedRecommendation{
 			{
 				Ticker:             "AAPL",
 				CompanyName:        "Apple Inc.",
@@ -172,14 +172,14 @@ func TestRecommendationHandler_GetRecommendations_WithFilters(t *testing.T) {
 				RecommendationType: enums.RECOMMENDATION_TYPE_BUY,
 			},
 		},
-		Meta: usecases.RecommendationMeta{
+		Meta: recommendationUsecase.RecommendationMeta{
 			Count:    1,
 			UserTier: enums.TIER_BASIC,
 		},
 	}
 
 	// Mock expectations - verify filters are passed correctly
-	mockUseCase.On("GetRecommendations", mock.Anything, mock.MatchedBy(func(req usecases.RecommendationRequest) bool {
+	mockUseCase.On("GetRecommendations", mock.Anything, mock.MatchedBy(func(req recommendationUsecase.RecommendationRequest) bool {
 		return req.UserTier == enums.TIER_BASIC &&
 			req.Limit == 15 &&
 			req.Filters.MinScore != nil && *req.Filters.MinScore == 0.7 &&
@@ -205,16 +205,16 @@ func TestRecommendationHandler_GetRecommendations_WithFilters(t *testing.T) {
 
 func TestRecommendationHandler_GetRecommendations_WithRateLimit(t *testing.T) {
 	// Setup
-	mockUseCase := new(MockTieredRecommendationUseCase)
+	mockUseCase := new(MockRecommendationUseCase)
 	mockLogger := &MockLogger{}
 	handler := handlers.NewRecommendationHandler(mockUseCase, mockLogger)
 
 	// Test data
-	expectedResponse := &usecases.RecommendationResponse{
-		Data: []*model.AggregatedRecommendation{
+	expectedResponse := &recommendationUsecase.RecommendationResponse{
+		Data: []*recommendationModel.AggregatedRecommendation{
 			{Ticker: "AAPL", BasicScore: 0.8},
 		},
-		Meta: usecases.RecommendationMeta{
+		Meta: recommendationUsecase.RecommendationMeta{
 			Count:    1,
 			UserTier: enums.TIER_BASIC,
 		},
@@ -235,7 +235,7 @@ func TestRecommendationHandler_GetRecommendations_WithRateLimit(t *testing.T) {
 	// Assert
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	var response usecases.RecommendationResponse
+	var response recommendationUsecase.RecommendationResponse
 	err := json.Unmarshal(w.Body.Bytes(), &response)
 	assert.NoError(t, err)
 	assert.Equal(t, 450, response.Meta.RateLimitRemaining)
@@ -245,17 +245,17 @@ func TestRecommendationHandler_GetRecommendations_WithRateLimit(t *testing.T) {
 
 func TestRecommendationHandler_GetRecommendationByTicker_Success(t *testing.T) {
 	// Setup
-	mockUseCase := new(MockTieredRecommendationUseCase)
+	mockUseCase := new(MockRecommendationUseCase)
 	mockLogger := &MockLogger{}
 	handler := handlers.NewRecommendationHandler(mockUseCase, mockLogger)
 
 	// Test data
-	expectedRecommendation := &model.AggregatedRecommendation{
+	expectedRecommendation := &recommendationModel.AggregatedRecommendation{
 		Ticker:      "AAPL",
 		CompanyName: "Apple Inc.",
 		BasicScore:  0.85,
 		Tier:        enums.RECOMMENDATION_TIER_ENRICHED,
-		ExternalData: &model.ExternalStockData{
+		ExternalData: &recommendationModel.ExternalStockData{
 			CurrentPrice: 170.0,
 		},
 	}
@@ -294,7 +294,7 @@ func TestRecommendationHandler_GetRecommendationByTicker_Success(t *testing.T) {
 
 func TestRecommendationHandler_GetRecommendationByTicker_InvalidTicker(t *testing.T) {
 	// Setup
-	mockUseCase := new(MockTieredRecommendationUseCase)
+	mockUseCase := new(MockRecommendationUseCase)
 	mockLogger := &MockLogger{}
 	handler := handlers.NewRecommendationHandler(mockUseCase, mockLogger)
 
@@ -329,7 +329,7 @@ func TestRecommendationHandler_GetRecommendationByTicker_InvalidTicker(t *testin
 
 func TestRecommendationHandler_GetRecommendationByTicker_NotFound(t *testing.T) {
 	// Setup
-	mockUseCase := new(MockTieredRecommendationUseCase)
+	mockUseCase := new(MockRecommendationUseCase)
 	mockLogger := &MockLogger{}
 	handler := handlers.NewRecommendationHandler(mockUseCase, mockLogger)
 
@@ -359,7 +359,7 @@ func TestRecommendationHandler_GetRecommendationByTicker_NotFound(t *testing.T) 
 
 func TestRecommendationHandler_GetRecommendationPreview_RequiresAuth(t *testing.T) {
 	// Setup
-	mockUseCase := new(MockTieredRecommendationUseCase)
+	mockUseCase := new(MockRecommendationUseCase)
 	mockLogger := &MockLogger{}
 	handler := handlers.NewRecommendationHandler(mockUseCase, mockLogger)
 
@@ -384,24 +384,24 @@ func TestRecommendationHandler_GetRecommendationPreview_RequiresAuth(t *testing.
 
 func TestRecommendationHandler_GetRecommendationPreview_Success(t *testing.T) {
 	// Setup
-	mockUseCase := new(MockTieredRecommendationUseCase)
+	mockUseCase := new(MockRecommendationUseCase)
 	mockLogger := &MockLogger{}
 	handler := handlers.NewRecommendationHandler(mockUseCase, mockLogger)
 
 	// Test data
-	basicRecommendation := &model.AggregatedRecommendation{
+	basicRecommendation := &recommendationModel.AggregatedRecommendation{
 		Ticker:      "AAPL",
 		CompanyName: "Apple Inc.",
 		BasicScore:  0.8,
 		Tier:        enums.RECOMMENDATION_TIER_ENRICHED,
 	}
 
-	premiumRecommendation := &model.AggregatedRecommendation{
+	premiumRecommendation := &recommendationModel.AggregatedRecommendation{
 		Ticker:      "AAPL",
 		CompanyName: "Apple Inc.",
 		BasicScore:  0.9,
 		Tier:        enums.RECOMMENDATION_TIER_PREMIUM,
-		ExternalData: &model.ExternalStockData{
+		ExternalData: &recommendationModel.ExternalStockData{
 			CurrentPrice: 170.0,
 		},
 		// AI insights would be here in Phase 6
@@ -439,7 +439,7 @@ func TestRecommendationHandler_GetRecommendationPreview_Success(t *testing.T) {
 
 func TestRecommendationHandler_ParameterParsing(t *testing.T) {
 	// Setup
-	mockUseCase := new(MockTieredRecommendationUseCase)
+	mockUseCase := new(MockRecommendationUseCase)
 	mockLogger := &MockLogger{}
 	handler := handlers.NewRecommendationHandler(mockUseCase, mockLogger)
 
@@ -447,15 +447,15 @@ func TestRecommendationHandler_ParameterParsing(t *testing.T) {
 		name       string
 		url        string
 		setupMocks func()
-		validate   func(req usecases.RecommendationRequest) bool
+		validate   func(req recommendationUsecase.RecommendationRequest) bool
 	}{
 		{
 			name: "Parse min_score filter",
 			url:  "/api/v1/recommendations?min_score=0.75",
 			setupMocks: func() {
-				mockUseCase.On("GetRecommendations", mock.Anything, mock.Anything).Return(&usecases.RecommendationResponse{}, nil)
+				mockUseCase.On("GetRecommendations", mock.Anything, mock.Anything).Return(&recommendationUsecase.RecommendationResponse{}, nil)
 			},
-			validate: func(req usecases.RecommendationRequest) bool {
+			validate: func(req recommendationUsecase.RecommendationRequest) bool {
 				return req.Filters.MinScore != nil && *req.Filters.MinScore == 0.75
 			},
 		},
@@ -463,9 +463,9 @@ func TestRecommendationHandler_ParameterParsing(t *testing.T) {
 			name: "Parse recommendation type filter",
 			url:  "/api/v1/recommendations?type=strong_buy",
 			setupMocks: func() {
-				mockUseCase.On("GetRecommendations", mock.Anything, mock.Anything).Return(&usecases.RecommendationResponse{}, nil)
+				mockUseCase.On("GetRecommendations", mock.Anything, mock.Anything).Return(&recommendationUsecase.RecommendationResponse{}, nil)
 			},
-			validate: func(req usecases.RecommendationRequest) bool {
+			validate: func(req recommendationUsecase.RecommendationRequest) bool {
 				return req.Filters.RecommendationType != nil && *req.Filters.RecommendationType == enums.RECOMMENDATION_TYPE_STRONG_BUY
 			},
 		},
@@ -473,9 +473,9 @@ func TestRecommendationHandler_ParameterParsing(t *testing.T) {
 			name: "Parse exclude tickers",
 			url:  "/api/v1/recommendations?exclude=TSLA,MSFT,GOOGL",
 			setupMocks: func() {
-				mockUseCase.On("GetRecommendations", mock.Anything, mock.Anything).Return(&usecases.RecommendationResponse{}, nil)
+				mockUseCase.On("GetRecommendations", mock.Anything, mock.Anything).Return(&recommendationUsecase.RecommendationResponse{}, nil)
 			},
-			validate: func(req usecases.RecommendationRequest) bool {
+			validate: func(req recommendationUsecase.RecommendationRequest) bool {
 				return len(req.Filters.ExcludeTickers) == 3 &&
 					req.Filters.ExcludeTickers[0] == "TSLA" &&
 					req.Filters.ExcludeTickers[1] == "MSFT" &&
@@ -486,9 +486,9 @@ func TestRecommendationHandler_ParameterParsing(t *testing.T) {
 			name: "Parse limit parameter",
 			url:  "/api/v1/recommendations?limit=25",
 			setupMocks: func() {
-				mockUseCase.On("GetRecommendations", mock.Anything, mock.Anything).Return(&usecases.RecommendationResponse{}, nil)
+				mockUseCase.On("GetRecommendations", mock.Anything, mock.Anything).Return(&recommendationUsecase.RecommendationResponse{}, nil)
 			},
-			validate: func(req usecases.RecommendationRequest) bool {
+			validate: func(req recommendationUsecase.RecommendationRequest) bool {
 				return req.Limit == 25
 			},
 		},
@@ -503,7 +503,7 @@ func TestRecommendationHandler_ParameterParsing(t *testing.T) {
 			tt.setupMocks()
 
 			// Mock with validation
-			mockUseCase.On("GetRecommendations", mock.Anything, mock.MatchedBy(tt.validate)).Return(&usecases.RecommendationResponse{}, nil)
+			mockUseCase.On("GetRecommendations", mock.Anything, mock.MatchedBy(tt.validate)).Return(&recommendationUsecase.RecommendationResponse{}, nil)
 
 			req := httptest.NewRequest("GET", tt.url, nil)
 			w := httptest.NewRecorder()
@@ -518,7 +518,7 @@ func TestRecommendationHandler_ParameterParsing(t *testing.T) {
 
 func TestRecommendationHandler_ErrorHandling(t *testing.T) {
 	// Setup
-	mockUseCase := new(MockTieredRecommendationUseCase)
+	mockUseCase := new(MockRecommendationUseCase)
 	mockLogger := &MockLogger{}
 	handler := handlers.NewRecommendationHandler(mockUseCase, mockLogger)
 

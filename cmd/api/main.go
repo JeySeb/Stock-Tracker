@@ -13,11 +13,16 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/joho/godotenv"
 
-	stockUsecases "stock-tracker/internal/domain/stocks/usecase"
 	authUsecases "stock-tracker/internal/domain/authentication/usecase"
+	recommendationUsecases "stock-tracker/internal/domain/recommendation/usecase"
+	recommendationValidation "stock-tracker/internal/domain/recommendation/validation"
+	stockUsecases "stock-tracker/internal/domain/stocks/usecase"
+	subscriptionUsecases "stock-tracker/internal/domain/subscription/usecase"
 	"stock-tracker/internal/infrastructure/auth"
+	"stock-tracker/internal/infrastructure/cache"
 	"stock-tracker/internal/infrastructure/config"
 	"stock-tracker/internal/infrastructure/database"
+	"stock-tracker/internal/infrastructure/external"
 	infraMiddleware "stock-tracker/internal/infrastructure/middleware"
 	"stock-tracker/internal/presentation/handlers"
 	"stock-tracker/pkg/logger"
@@ -62,21 +67,38 @@ func main() {
 	}
 	jwtService := auth.NewJWTService(jwtSecret)
 
+	// Initialize cache
+	cache := cache.NewInMemoryCache()
+
+	// Initialize external API clients
+	yahooClient := external.NewYahooFinanceClient(log)
+	alphaVantageClient := external.NewAlphaVantageClient("", log) // Empty API key for now
+
+	// Initialize recommendation components
+	basicCalculator := recommendationValidation.NewBasicScoringCalculator(stockRepo, log)
+	externalEnricher := recommendationValidation.NewExternalDataEnricher(yahooClient, alphaVantageClient, cache, log)
+
 	// Initialize use cases
 	stockQueryUC := stockUsecases.NewStockQueryUseCase(stockRepo, brokerRepo, log)
 	userUC := authUsecases.NewUserUseCase(userRepo, subscriptionRepo, sessionRepo, jwtService, log)
+	recommendationUC := recommendationUsecases.NewTieredRecommendationUseCase(stockRepo, basicCalculator, externalEnricher, cache, log)
 	// subscriptionUC := usecases.NewSubscriptionUseCase(subscriptionRepo, userRepo, log) // TODO: Use when subscription handler is implemented
 
 	// Initialize middleware
 	authMiddleware := infraMiddleware.NewAuthMiddleware(jwtService, log)
 	rateLimiter := infraMiddleware.NewRateLimiter(log)
 
+	// Initialize subscription use case (was commented out)
+	subscriptionUC := subscriptionUsecases.NewSubscriptionUseCase(subscriptionRepo, userRepo, log)
+
 	// Initialize handlers
 	stockHandler := handlers.NewStockHandler(stockQueryUC, log)
 	authHandler := handlers.NewAuthHandler(userUC, log)
+	recommendationHandler := handlers.NewRecommendationHandler(recommendationUC, log)
+	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionUC, log)
 
 	// Initialize router
-	r := setupRouter(stockHandler, authHandler, authMiddleware, rateLimiter, log, dbPool)
+	r := setupRouter(stockHandler, authHandler, recommendationHandler, subscriptionHandler, authMiddleware, rateLimiter, log, dbPool)
 
 	// Configure server
 	server := &http.Server{
@@ -135,6 +157,8 @@ func corsMiddleware(next http.Handler) http.Handler {
 func setupRouter(
 	stockHandler *handlers.StockHandler,
 	authHandler *handlers.AuthHandler,
+	recommendationHandler *handlers.RecommendationHandler,
+	subscriptionHandler *handlers.SubscriptionHandler,
 	authMiddleware *infraMiddleware.AuthMiddleware,
 	rateLimiter *infraMiddleware.RateLimiter,
 	log logger.Logger,
@@ -149,6 +173,13 @@ func setupRouter(
 	r.Use(middleware.RealIP)
 	r.Use(middleware.Timeout(60 * time.Second))
 	r.Use(corsMiddleware)
+
+	// NEW: Additional production middleware
+	r.Use(middleware.Compress(5))        // Response compression
+	r.Use(middleware.Heartbeat("/ping")) // Simple health endpoint
+	r.Use(middleware.NoCache)            // Disable caching for API responses
+	r.Use(middleware.RedirectSlashes)    // Handle trailing slashes
+	r.Use(middleware.CleanPath)          // Clean URL paths
 
 	// Health check
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -203,18 +234,41 @@ func setupRouter(
 				// TODO: Add user profile endpoints
 			})
 
-			// Premium subscription routes
+			// Subscription routes (IMPLEMENTED functionality)
 			r.Route("/subscriptions", func(r chi.Router) {
 				r.Use(authMiddleware.RequireAuth)
 				r.Use(rateLimiter.RateLimit)
-				// TODO: Add subscription endpoints when handler is implemented
+
+				// ✅ IMPLEMENTED: Create new subscription
+				r.Post("/", subscriptionHandler.CreateSubscription)
+
+				// ✅ IMPLEMENTED: Simulate payment for subscription
+				r.Post("/{id}/payment", subscriptionHandler.SimulatePayment)
+
+				// TODO: Additional routes that can be implemented with existing logic:
+				// r.Get("/", subscriptionHandler.GetUserSubscriptions)        // Uses: GetByUserID
+				// r.Get("/{id}", subscriptionHandler.GetSubscriptionByID)     // Uses: GetByID
+				// r.Get("/active", subscriptionHandler.GetActiveSubscription) // Uses: GetActiveByUserID
+				// r.Post("/{id}/cancel", subscriptionHandler.CancelSubscription) // Uses: Update + Cancel()
+				// r.Get("/plans", subscriptionHandler.GetSubscriptionPlans)   // Static data
 			})
 
-			// Premium features (AI chat, advanced analytics)
+			// Recommendation routes with optional authentication
+			r.Route("/recommendations", func(r chi.Router) {
+				r.Use(authMiddleware.OptionalAuth) // Guest users can access with limitations
+				r.Use(rateLimiter.RateLimit)       // Tier-based rate limiting
+				r.Get("/", recommendationHandler.GetRecommendations)
+				r.Get("/{ticker}", recommendationHandler.GetRecommendationByTicker)
+
+				// ACTUALLY IMPLEMENTED: Preview endpoint from the handler
+				r.Get("/preview/{ticker}", recommendationHandler.GetRecommendationPreview)
+			})
+
+			// Premium features (basic framework ready)
 			r.Route("/premium", func(r chi.Router) {
 				r.Use(authMiddleware.RequirePremium)
 				r.Use(rateLimiter.RateLimit)
-				// TODO: Add premium endpoints
+				// TODO: Add premium endpoints when AI features are implemented
 			})
 		})
 	})
