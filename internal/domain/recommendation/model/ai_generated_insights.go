@@ -2,6 +2,7 @@ package model
 
 import "time"
 
+// TODO: CHECK THIS AT FINAL PHASE
 type AIGeneratedInsights struct {
 	MarketSentiment     string    `json:"market_sentiment"`      // "Bullish", "Bearish", "Neutral"
 	SentimentScore      float64   `json:"sentiment_score"`       // -1 to 1

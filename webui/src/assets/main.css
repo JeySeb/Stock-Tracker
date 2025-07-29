@@ -1,0 +1,75 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom CSS Variables for Brand Colors */
+:root {
+  --color-primary-50: #f0f9ff;
+  --color-primary-100: #e0f2fe;
+  --color-primary-500: #0ea5e9;
+  --color-primary-600: #0284c7;
+  --color-primary-700: #0369a1;
+}
+
+/* Financial colors for positive/negative values */
+:root {
+  --color-financial-buy: #10b981;
+  --color-financial-sell: #ef4444;
+  --color-financial-hold: #6b7280;
+}
+
+/* Base styles */
+body {
+  @apply bg-gray-50 text-gray-900;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Custom utility classes */
+.text-financial-buy {
+  color: var(--color-financial-buy);
+}
+
+.text-financial-sell {
+  color: var(--color-financial-sell);
+}
+
+.text-financial-hold {
+  color: var(--color-financial-hold);
+}
+
+.bg-primary-50 {
+  background-color: var(--color-primary-50);
+}
+
+.bg-primary-100 {
+  background-color: var(--color-primary-100);
+}
+
+.bg-primary-500 {
+  background-color: var(--color-primary-500);
+}
+
+.bg-primary-600 {
+  background-color: var(--color-primary-600);
+}
+
+.bg-primary-700 {
+  background-color: var(--color-primary-700);
+}
+
+.text-primary-600 {
+  color: var(--color-primary-600);
+}
+
+.text-primary-700 {
+  color: var(--color-primary-700);
+}
+
+.border-primary-500 {
+  border-color: var(--color-primary-500);
+}
+
+/* Remove default app constraints */
+#app {
+  min-height: 100vh;
+}
