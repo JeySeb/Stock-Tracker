@@ -215,4 +215,4 @@ make dev-up
 
 ---
 
-**Built with ❤️ for intelligent investing**
+**Built with ❤️**
