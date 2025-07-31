@@ -380,6 +380,19 @@ func NewAlphaVantageClient(apiKey string, logger logger.Logger) AlphaVantageClie
 
 // GetQuote retrieves quote data from Alpha Vantage
 func (c *alphaVantageClient) GetQuote(ctx context.Context, symbol string) (*model.ExternalStockData, error) {
+	// Validate input
+	if symbol == "" {
+		c.logger.Error("Invalid symbol provided", "symbol", symbol)
+		return nil, ErrInvalidSymbol
+	}
+
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	// Build URL
 	params := url.Values{}
 	params.Set("function", "GLOBAL_QUOTE")
@@ -391,12 +404,14 @@ func (c *alphaVantageClient) GetQuote(ctx context.Context, symbol string) (*mode
 	// Create request with context
 	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
 	if err != nil {
+		c.logger.Error("Failed to create request", "error", err)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	// Execute request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		c.logger.Error("Failed to execute request", "error", err, "symbol", symbol)
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer func() {
@@ -406,6 +421,7 @@ func (c *alphaVantageClient) GetQuote(ctx context.Context, symbol string) (*mode
 	}()
 
 	if resp.StatusCode != http.StatusOK {
+		c.logger.Error("API returned non-200 status", "status", resp.StatusCode, "symbol", symbol)
 		return nil, fmt.Errorf("API returned status %d for symbol %s", resp.StatusCode, symbol)
 	}
 
@@ -420,6 +436,19 @@ func (c *alphaVantageClient) GetQuote(ctx context.Context, symbol string) (*mode
 
 // GetCompanyOverview retrieves fundamental company data
 func (c *alphaVantageClient) GetCompanyOverview(ctx context.Context, symbol string) (*CompanyOverview, error) {
+	// Validate input
+	if symbol == "" {
+		c.logger.Error("Invalid symbol provided", "symbol", symbol)
+		return nil, ErrInvalidSymbol
+	}
+
+	// Check context cancellation
+	select {
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	default:
+	}
+
 	// Build URL
 	params := url.Values{}
 	params.Set("function", "OVERVIEW")
@@ -431,12 +460,14 @@ func (c *alphaVantageClient) GetCompanyOverview(ctx context.Context, symbol stri
 	// Create request with context
 	req, err := http.NewRequestWithContext(ctx, "GET", requestURL, nil)
 	if err != nil {
+		c.logger.Error("Failed to create request", "error", err)
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	// Execute request
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
+		c.logger.Error("Failed to execute request", "error", err, "symbol", symbol)
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
 	defer func() {
@@ -446,12 +477,14 @@ func (c *alphaVantageClient) GetCompanyOverview(ctx context.Context, symbol stri
 	}()
 
 	if resp.StatusCode != http.StatusOK {
+		c.logger.Error("API returned non-200 status", "status", resp.StatusCode, "symbol", symbol)
 		return nil, fmt.Errorf("API returned status %d for symbol %s", resp.StatusCode, symbol)
 	}
 
 	// Parse response
 	var overview CompanyOverview
 	if err := json.NewDecoder(resp.Body).Decode(&overview); err != nil {
+		c.logger.Error("Failed to decode response", "error", err)
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 

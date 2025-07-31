@@ -129,13 +129,20 @@ func (enricher *ExternalDataEnricher) calculateEnrichedFactors(
 	baseWeight := 0.70     // 70% weight to basic score
 	externalWeight := 0.30 // 30% weight to external factors
 
+	// Define individual factor weights that sum to 1.0
+	upsideWeight := 0.50    // 50% of external factors
+	volumeWeight := 0.30    // 30% of external factors  
+	positionWeight := 0.20  // 20% of external factors
+
 	// Calculate individual external factors
 	upsideFactor := enricher.calculateUpsidePotential(base, external)
 	volumeFactor := enricher.calculateVolumeActivity(external)
 	positionFactor := enricher.calculateYearPosition(external)
 
-	// Combine external factors
-	combinedExternalScore := (upsideFactor + volumeFactor + positionFactor) / 3.0
+	// Combine external factors using their weights
+	combinedExternalScore := (upsideFactor * upsideWeight) +
+		(volumeFactor * volumeWeight) +
+		(positionFactor * positionWeight)
 
 	// Calculate final enriched score
 	enrichedScore := baseWeight*base.BasicScore + externalWeight*combinedExternalScore
@@ -145,21 +152,21 @@ func (enricher *ExternalDataEnricher) calculateEnrichedFactors(
 		{
 			Name:        "Real-time Upside Potential",
 			Score:       upsideFactor,
-			Weight:      0.15,
+			Weight:      externalWeight * upsideWeight,   // 0.30 * 0.50 = 0.15
 			Explanation: enricher.explainUpsidePotential(base, external, upsideFactor),
 			Tier:        enums.RECOMMENDATION_TIER_ENRICHED,
 		},
 		{
 			Name:        "Volume Activity",
 			Score:       volumeFactor,
-			Weight:      0.10,
+			Weight:      externalWeight * volumeWeight,   // 0.30 * 0.30 = 0.09
 			Explanation: enricher.explainVolumeActivity(external, volumeFactor),
 			Tier:        enums.RECOMMENDATION_TIER_ENRICHED,
 		},
 		{
 			Name:        "52-Week Position",
 			Score:       positionFactor,
-			Weight:      0.05,
+			Weight:      externalWeight * positionWeight, // 0.30 * 0.20 = 0.06
 			Explanation: enricher.explainYearPosition(external, positionFactor),
 			Tier:        enums.RECOMMENDATION_TIER_ENRICHED,
 		},

@@ -14,6 +14,7 @@ import (
 	"github.com/joho/godotenv"
 
 	authUsecases "stock-tracker/internal/domain/authentication/usecase"
+	marketDataUsecase "stock-tracker/internal/domain/marketdata/usecase"
 	recommendationUsecases "stock-tracker/internal/domain/recommendation/usecase"
 	recommendationValidation "stock-tracker/internal/domain/recommendation/validation"
 	stockUsecases "stock-tracker/internal/domain/stocks/usecase"
@@ -54,11 +55,11 @@ func main() {
 
 	// Initialize repositories
 	stockRepo := database.NewStockRepository(dbPool.GetPool(), log)
-	brokerRepo := database.NewBrokerRepository(dbPool.GetPool())
 	userRepo := database.NewUserRepository(dbPool.GetPool(), log)
-	sessionRepo := database.NewSessionRepository(dbPool.GetPool())
+	brokerRepo := database.NewBrokerRepository(dbPool.GetPool())
 	subscriptionRepo := database.NewSubscriptionRepository(dbPool.GetPool(), log)
-
+	sessionRepo := database.NewSessionRepository(dbPool.GetPool())
+	marketDataAnalysisRepo := database.NewMarketDataAnalysisRepository(dbPool.GetPool(), log)
 	// Initialize JWT service
 	jwtSecret := os.Getenv("JWT_SECRET")
 	if jwtSecret == "" {
@@ -83,6 +84,7 @@ func main() {
 	userUC := authUsecases.NewUserUseCase(userRepo, subscriptionRepo, sessionRepo, jwtService, log)
 	recommendationUC := recommendationUsecases.NewTieredRecommendationUseCase(stockRepo, basicCalculator, externalEnricher, cache, log)
 	// subscriptionUC := usecases.NewSubscriptionUseCase(subscriptionRepo, userRepo, log) // TODO: Use when subscription handler is implemented
+	marketDataUC := marketDataUsecase.NewMarketDataAnalysisUseCase(marketDataAnalysisRepo, log)
 
 	// Initialize middleware
 	authMiddleware := infraMiddleware.NewAuthMiddleware(jwtService, log)
@@ -96,9 +98,9 @@ func main() {
 	authHandler := handlers.NewAuthHandler(userUC, log)
 	recommendationHandler := handlers.NewRecommendationHandler(recommendationUC, log)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionUC, log)
-
+	marketDataHandler := handlers.NewMarketDataHandler(marketDataUC, log)
 	// Initialize router
-	r := setupRouter(stockHandler, authHandler, recommendationHandler, subscriptionHandler, authMiddleware, rateLimiter, log, dbPool)
+	r := setupRouter(stockHandler, authHandler, recommendationHandler, subscriptionHandler, marketDataHandler, authMiddleware, rateLimiter, log, dbPool)
 
 	// Configure server
 	server := &http.Server{
@@ -159,6 +161,7 @@ func setupRouter(
 	authHandler *handlers.AuthHandler,
 	recommendationHandler *handlers.RecommendationHandler,
 	subscriptionHandler *handlers.SubscriptionHandler,
+	marketDataHandler *handlers.MarketDataHandler,
 	authMiddleware *infraMiddleware.AuthMiddleware,
 	rateLimiter *infraMiddleware.RateLimiter,
 	log logger.Logger,
@@ -246,11 +249,9 @@ func setupRouter(
 				r.Post("/{id}/payment", subscriptionHandler.SimulatePayment)
 
 				// TODO: Additional routes that can be implemented with existing logic:
-				// r.Get("/", subscriptionHandler.GetUserSubscriptions)        // Uses: GetByUserID
-				// r.Get("/{id}", subscriptionHandler.GetSubscriptionByID)     // Uses: GetByID
-				// r.Get("/active", subscriptionHandler.GetActiveSubscription) // Uses: GetActiveByUserID
-				// r.Post("/{id}/cancel", subscriptionHandler.CancelSubscription) // Uses: Update + Cancel()
-				// r.Get("/plans", subscriptionHandler.GetSubscriptionPlans)   // Static data
+				r.Get("/{id}", subscriptionHandler.GetSubscriptionByID)     // Uses: GetByID
+				r.Get("/active", subscriptionHandler.GetActiveSubscription) // Uses: GetActiveByUserID
+				r.Get("/plans", subscriptionHandler.GetSubscriptionPlans)   // Static data
 			})
 
 			// Recommendation routes with optional authentication
@@ -264,6 +265,26 @@ func setupRouter(
 				r.Get("/preview/{ticker}", recommendationHandler.GetRecommendationPreview)
 			})
 
+			// Market data routes with optional authentication
+			r.Route("/market-data", func(r chi.Router) {
+				r.Use(authMiddleware.OptionalAuth) // Guest users can access with limitations
+				r.Use(rateLimiter.RateLimit)       // Tier-based rate limiting
+				r.Get("/analysis/{ticker}", marketDataHandler.GetMarketDataAnalysis)
+				r.Get("/trend/{ticker}", marketDataHandler.GetMarketDataTrend)
+				r.Get("/summary", marketDataHandler.GetMarketDataSummary)
+				r.Get("/top-performers", marketDataHandler.GetTopPerformers)
+				r.Get("/worst-performers", marketDataHandler.GetWorstPerformers)
+				r.Get("/latest/{ticker}", marketDataHandler.GetLatestMarketData)
+				//r.Get("/compare", marketDataHandler.GetMarketDataComparison)
+				//r.Get("/volatile", marketDataHandler.GetMostVolatile)
+				//r.Get("/active", marketDataHandler.GetMostActive)
+				//r.Get("/high-risk", marketDataHandler.GetHighRiskTickers)
+				//r.Get("/low-risk", marketDataHandler.GetLowRiskTickers)
+				//r.Get("/analysis-combined/{ticker}", marketDataHandler.GetMarketDataWithStockAnalysis)
+				//r.Get("/broker-correlation/{ticker}", marketDataHandler.GetCorrelationWithBrokerActions)
+				//r.Get("/impact/{ticker}", marketDataHandler.GetMarketDataImpactOnRecommendations)
+				r.Get("/{ticker}", marketDataHandler.GetMarketDataByTicker)
+			})
 			// Premium features (basic framework ready)
 			r.Route("/premium", func(r chi.Router) {
 				r.Use(authMiddleware.RequirePremium)

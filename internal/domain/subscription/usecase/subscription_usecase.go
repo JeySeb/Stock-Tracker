@@ -18,6 +18,8 @@ import (
 type SubscriptionUseCase interface {
 	CreateSubscription(ctx context.Context, userID uuid.UUID, req PaymentSimulationRequest) (*subscriptionModel.Subscription, error)
 	SimulatePayment(ctx context.Context, subscriptionID uuid.UUID) error
+	GetSubscriptionByID(ctx context.Context, subscriptionID uuid.UUID, userID uuid.UUID) (*subscriptionModel.Subscription, error)
+	GetActiveSubscription(ctx context.Context, userID uuid.UUID) (*subscriptionModel.Subscription, error)
 }
 
 type subscriptionUseCase struct {
@@ -120,4 +122,37 @@ func (uc *subscriptionUseCase) SimulatePayment(ctx context.Context, subscription
 		"payment_ref", paymentRef)
 
 	return nil
+}
+
+func (uc *subscriptionUseCase) GetSubscriptionByID(ctx context.Context, subscriptionID uuid.UUID, userID uuid.UUID) (*subscriptionModel.Subscription, error) {
+	// Get subscription
+	subscription, err := uc.subscriptionRepo.GetByID(ctx, subscriptionID)
+	if err != nil {
+		uc.logger.Error("Subscription not found", "error", err, "subscription_id", subscriptionID)
+		return nil, fmt.Errorf("subscription not found: %w", err)
+	}
+
+	// Verify user owns this subscription
+	if subscription.UserID != userID {
+		uc.logger.Error("User does not own subscription", "user_id", userID, "subscription_user_id", subscription.UserID)
+		return nil, fmt.Errorf("access denied")
+	}
+
+	return subscription, nil
+}
+
+func (uc *subscriptionUseCase) GetActiveSubscription(ctx context.Context, userID uuid.UUID) (*subscriptionModel.Subscription, error) {
+	// Get active subscription for user
+	subscription, err := uc.subscriptionRepo.GetActiveByUserID(ctx, userID)
+	if err != nil {
+		uc.logger.Error("Failed to get active subscription", "error", err, "user_id", userID)
+		return nil, fmt.Errorf("failed to get active subscription: %w", err)
+	}
+
+	if subscription == nil || !subscription.IsActive() {
+		uc.logger.Info("No active subscription found", "user_id", userID)
+		return nil, fmt.Errorf("no active subscription found")
+	}
+
+	return subscription, nil
 }

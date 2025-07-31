@@ -98,6 +98,84 @@ func (h *SubscriptionHandler) SimulatePayment(w http.ResponseWriter, r *http.Req
 	h.respondWithJSON(w, r, http.StatusOK, map[string]string{"message": "Payment processed successfully"})
 }
 
+func (h *SubscriptionHandler) GetSubscriptionByID(w http.ResponseWriter, r *http.Request) {
+	subscriptionID, err := h.getSubscriptionIDFromURL(r)
+	if err != nil {
+		h.logger.Error("Invalid subscription ID", "error", err)
+		h.respondWithError(w, r, http.StatusBadRequest, "Invalid subscription ID")
+		return
+	}
+
+	// Verify user has access to this subscription
+	userID, err := h.getUserIDFromContext(r)
+	if err != nil {
+		h.logger.Error("Failed to get user ID from context", "error", err)
+		h.respondWithError(w, r, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
+	subscription, err := h.subscriptionUC.GetSubscriptionByID(r.Context(), subscriptionID, userID)
+	if err != nil {
+		h.logger.Error("Failed to get subscription", "error", err, "subscriptionID", subscriptionID)
+		h.respondWithError(w, r, http.StatusNotFound, "Subscription not found")
+		return
+	}
+
+	h.respondWithJSON(w, r, http.StatusOK, subscription)
+}
+
+func (h *SubscriptionHandler) GetActiveSubscription(w http.ResponseWriter, r *http.Request) {
+	userID, err := h.getUserIDFromContext(r)
+	if err != nil {
+		h.logger.Error("Failed to get user ID from context", "error", err)
+		h.respondWithError(w, r, http.StatusUnauthorized, "Authentication required")
+		return
+	}
+
+	subscription, err := h.subscriptionUC.GetActiveSubscription(r.Context(), userID)
+	if err != nil {
+		h.logger.Error("Failed to get active subscription", "error", err, "userID", userID)
+		h.respondWithError(w, r, http.StatusNotFound, "No active subscription found")
+		return
+	}
+
+	h.respondWithJSON(w, r, http.StatusOK, subscription)
+}
+
+func (h *SubscriptionHandler) GetSubscriptionPlans(w http.ResponseWriter, r *http.Request) {
+	plans := []map[string]interface{}{
+		{
+			"plan":     "monthly",
+			"name":     "Monthly Plan",
+			"price":    float64(enums.PRICE_MONTHLY),
+			"currency": "USD",
+			"duration": "1 month",
+			"features": []string{
+				"Basic stock analysis",
+				"Market data access",
+				"Recommendation engine",
+				"Email notifications",
+			},
+		},
+		{
+			"plan":     "yearly",
+			"name":     "Yearly Plan",
+			"price":    float64(enums.PRICE_YEARLY),
+			"currency": "USD",
+			"duration": "1 year",
+			"features": []string{
+				"All monthly features",
+				"Premium analytics",
+				"Advanced risk assessment",
+				"Priority support",
+				"API access",
+			},
+		},
+	}
+
+	h.respondWithJSON(w, r, http.StatusOK, plans)
+}
+
 // Helper methods
 func (h *SubscriptionHandler) getUserIDFromContext(r *http.Request) (uuid.UUID, error) {
 	userID, ok := r.Context().Value(middleware.UserIDContextKey).(uuid.UUID)
