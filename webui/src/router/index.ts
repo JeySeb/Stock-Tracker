@@ -39,7 +39,13 @@ const routes = [
     path: '/subscription',
     name: 'subscription',
     component: () => import('@/views/SubscriptionView.vue')
-  }, /** 
+  },
+  {
+    path: '/real-time-data',
+    name: 'real-time-data',
+    component: () => import('@/views/RealTimeDataView.vue'),
+    meta: { requiresAuth: true }
+  }/** 
   {
     path: '/profile',
     name: 'profile',
@@ -53,16 +59,30 @@ const router = createRouter({
 })
 
 // Global navigation guards
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   
   console.log('🛡️ Router guard:', {
     to: to.name,
     from: from.name,
     isAuthenticated: authStore.isAuthenticated,
+    user: !!authStore.user,
+    accessToken: !!authStore.accessToken,
+    isInitialized: authStore.isInitialized,
     requiresGuest: to.meta.requiresGuest,
     requiresAuth: to.meta.requiresAuth
   })
+  
+  // If auth store is not initialized yet, wait for it
+  if (!authStore.isInitialized) {
+    console.log('⏳ Auth store not initialized, waiting...')
+    try {
+      await authStore.initializeAuth()
+      console.log('✅ Auth store initialized')
+    } catch (error) {
+      console.log('❌ Auth initialization failed:', error)
+    }
+  }
   
   // Redirect authenticated users away from auth pages and landing page
   if (to.meta.requiresGuest && authStore.isAuthenticated) {

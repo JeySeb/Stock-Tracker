@@ -34,6 +34,18 @@ app.use(router)
 
 // Initialize auth store after pinia is set up
 const authStore = useAuthStore()
-authStore.initializeAuth()
 
-app.mount('#app')
+// Wait for auth initialization before mounting the app
+async function initializeApp() {
+  try {
+    console.log('🚀 Initializing app...')
+    await authStore.initializeAuth()
+    console.log('✅ Auth initialized, mounting app...')
+    app.mount('#app')
+  } catch (error) {
+    console.log('⚠️ Auth initialization failed, mounting app anyway...', error)
+    app.mount('#app')
+  }
+}
+
+initializeApp()

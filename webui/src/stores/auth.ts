@@ -10,6 +10,7 @@ export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref<string | null>(null)
   const refreshToken = ref<string | null>(null)
   const isLoading = ref(false)
+  const isInitialized = ref(false)
 
   // Getters
   const isAuthenticated = computed(() => !!user.value && !!accessToken.value)
@@ -107,6 +108,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     accessToken.value = null
     refreshToken.value = null
+    isInitialized.value = false
     
     // Clear API client token
     apiClient.setAccessToken(null)
@@ -117,9 +119,21 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function initializeAuth() {
+    if (isInitialized.value) {
+      console.log('🔧 Auth store already initialized, skipping...')
+      return Promise.resolve(user.value)
+    }
+    
+    console.log('🔧 Initializing auth store...')
+    
     // Restore tokens from localStorage
     const storedAccessToken = localStorage.getItem('stock_tracker_access_token')
     const storedRefreshToken = localStorage.getItem('stock_tracker_refresh_token')
+    
+    console.log('🔍 Found stored tokens:', {
+      hasAccessToken: !!storedAccessToken,
+      hasRefreshToken: !!storedRefreshToken
+    })
     
     if (storedAccessToken && storedRefreshToken) {
       accessToken.value = storedAccessToken
@@ -128,10 +142,26 @@ export const useAuthStore = defineStore('auth', () => {
       // Update API client with stored token
       apiClient.setAccessToken(storedAccessToken)
       
+      console.log('🔄 Attempting to restore user session...')
+      
       // Try to fetch current user data
-      authAPI.getCurrentUser()
-        .then(userData => user.value = userData)
-        .catch(() => logout())
+      return authAPI.getCurrentUser()
+        .then(userData => {
+          console.log('✅ User session restored:', userData)
+          user.value = userData
+          isInitialized.value = true
+          return userData
+        })
+        .catch((error) => {
+          console.error('❌ Failed to restore user session:', error)
+          logout()
+          isInitialized.value = true
+          throw new Error('Failed to restore user session')
+        })
+    } else {
+      console.log('📝 No stored tokens found, user will need to login')
+      isInitialized.value = true
+      return Promise.resolve(null)
     }
 
     // Listen for token expiration events
@@ -167,24 +197,25 @@ export const useAuthStore = defineStore('auth', () => {
     setAuthData(demoUser, demoTokens)
   }
 
-  return {
-    // State
-    user: readonly(user),
-    isLoading: readonly(isLoading),
-    
-    // Getters
-    isAuthenticated,
-    userTier,
-    hasFeature,
-    accessToken: readonly(accessToken),
-    
-    // Actions
-    login,
-    register,
-    refreshToken: refreshTokens,
-    logout,
-    initializeAuth,
-    updateUserTier,
-    demoLogin
-  }
+      return {
+      // State
+      user: readonly(user),
+      isLoading: readonly(isLoading),
+      isInitialized: readonly(isInitialized),
+      
+      // Getters
+      isAuthenticated,
+      userTier,
+      hasFeature,
+      accessToken: readonly(accessToken),
+      
+      // Actions
+      login,
+      register,
+      refreshToken: refreshTokens,
+      logout,
+      initializeAuth,
+      updateUserTier,
+      demoLogin
+    }
 })
