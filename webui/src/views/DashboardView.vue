@@ -155,16 +155,17 @@
   import RecommendationDistributionChart from '@/components/features/dashboard/RecommendationDistributionChart.vue'
   import TopRecommendationsList from '@/components/features/dashboard/TopRecommendationsList.vue'
   import RecentStockEvents from '@/components/features/dashboard/RecentStockEvents.vue'
-  
+  import type { Recommendation } from '@/types'
+
   const router = useRouter()
   const authStore = useAuthStore()
   const stocksStore = useStocksStore()
   const recommendationsStore = useRecommendationsStore()
-  
+
   const strongBuyCount = computed(() => {
     if (!recommendationsStore.recommendations || recommendationsStore.recommendations.length === 0) return 0
     return recommendationsStore.recommendations.filter(
-      (r: any) => r.recommendation_type === 'Strong Buy'
+      (r: Recommendation) => r.recommendation_type === 'Strong Buy'
     ).length
   })
 
@@ -183,8 +184,8 @@
   const topRecommendations = computed(() => {
     if (!recommendationsStore.recommendations || recommendationsStore.recommendations.length === 0) return []
     return recommendationsStore.recommendations
-      .filter((r: any) => ['Strong Buy', 'Buy'].includes(r.recommendation_type))
-      .sort((a: any, b: any) => b.basic_score - a.basic_score)
+      .filter((r: Recommendation) => ['Strong Buy', 'Buy'].includes(r.recommendation_type))
+      .sort((a: Recommendation, b: Recommendation) => b.basic_score - a.basic_score)
       .slice(0, 5)
       .map(rec => ({
         ...rec,
@@ -199,7 +200,7 @@
   
   const recommendationChartData = computed(() => {
     if (!recommendationsStore.recommendations || recommendationsStore.recommendations.length === 0) return []
-    const distribution = recommendationsStore.recommendations.reduce((acc: Record<string, number>, rec: any) => {
+    const distribution = recommendationsStore.recommendations.reduce((acc: Record<string, number>, rec: Recommendation) => {
       acc[rec.recommendation_type] = (acc[rec.recommendation_type] || 0) + 1
       return acc
     }, {} as Record<string, number>)

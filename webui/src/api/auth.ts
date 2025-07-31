@@ -19,11 +19,27 @@ export interface RefreshTokenRequest {
 
 export const authAPI = {
   async login(credentials: LoginRequest): Promise<AuthResponse> {
-    return apiClient.post('/auth/login', credentials)
+    console.log('🔐 AuthAPI: Attempting login with:', { ...credentials, password: '[HIDDEN]' })
+    try {
+      const response = await apiClient.post<AuthResponse>('/auth/login', credentials)
+      console.log('✅ AuthAPI: Login successful:', response)
+      return response
+    } catch (error) {
+      console.error('❌ AuthAPI: Login failed:', error)
+      throw error
+    }
   },
 
   async register(userData: RegisterRequest): Promise<AuthResponse> {
-    return apiClient.post('/auth/register', userData)
+    console.log('🔐 AuthAPI: Attempting registration with:', { ...userData, password: '[HIDDEN]' })
+    try {
+      const response = await apiClient.post<AuthResponse>('/auth/register', userData)
+      console.log('✅ AuthAPI: Registration successful:', response)
+      return response
+    } catch (error) {
+      console.error('❌ AuthAPI: Registration failed:', error)
+      throw error
+    }
   },
 
   async refreshToken(refreshToken: string): Promise<{ tokens: AuthResponse['tokens'] }> {

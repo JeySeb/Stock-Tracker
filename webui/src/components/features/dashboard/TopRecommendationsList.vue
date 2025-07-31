@@ -93,7 +93,7 @@ interface Props {
   userTier: UserTier
 }
 
-const props = withDefaults(defineProps<Props>(), {
+withDefaults(defineProps<Props>(), {
   loading: false
 })
 

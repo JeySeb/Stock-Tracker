@@ -20,7 +20,7 @@ export const useRecommendationsStore = defineStore('recommendations', () => {
     limit: 10
   })
   const selectedRecommendation = ref<Recommendation | null>(null)
-  const previewData = ref<any>(null)
+  const previewData = ref<unknown>(null)
 
   // Getters
   const authStore = useAuthStore()
@@ -36,13 +36,21 @@ export const useRecommendationsStore = defineStore('recommendations', () => {
   async function fetchRecommendations() {
     isLoading.value = true
     try {
-      // Ensure limit doesn't exceed tier maximum
+      // Transform and validate filters
       const adjustedFilters = {
-        ...filters.value,
-        limit: Math.min(filters.value.limit || 10, maxRecommendations.value)
+        limit: Math.min(filters.value.limit || 10, maxRecommendations.value),
+        min_score: filters.value.min_score !== undefined ? 
+          Math.min(Math.max(filters.value.min_score, 0), 1) : undefined,
+        type: filters.value.type || undefined,
+        exclude: filters.value.exclude || undefined
       }
       
-      const response = await recommendationsAPI.getRecommendations(adjustedFilters)
+      // Remove undefined values
+      const cleanFilters = Object.fromEntries(
+        Object.entries(adjustedFilters).filter(([, v]) => v !== undefined)
+      )
+      
+      const response = await recommendationsAPI.getRecommendations(cleanFilters)
       recommendations.value = response.data
       meta.value = response.meta
       

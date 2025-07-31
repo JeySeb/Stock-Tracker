@@ -67,11 +67,11 @@
         empty-message="No stock events found with current filters"
         @sort="handleSort"
         @page-change="stocksStore.setPage"
-        @row-click="handleRowClick"
+        @row-click="(item: Record<string, unknown>) => handleRowClick(item as unknown as StockEvent)"
       >
         <template #cell-target_change="{ item }">
-          <span :class="getTargetChangeClass(item)">
-            {{ formatTargetChange(item) }}
+          <span :class="getTargetChangeClass(item as unknown as StockEvent)">
+            {{ formatTargetChange(item as unknown as StockEvent) }}
           </span>
         </template>
   
@@ -85,8 +85,8 @@
   
         <template #cell-event_time="{ value }">
           <div class="text-sm">
-            <div class="font-medium">{{ formatDate(value) }}</div>
-            <div class="text-gray-500">{{ formatTime(value) }}</div>
+            <div class="font-medium">{{ formatDate(value as string) }}</div>
+            <div class="text-gray-500">{{ formatTime(value as string) }}</div>
           </div>
         </template>
       </DataTable>

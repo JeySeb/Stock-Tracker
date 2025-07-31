@@ -30,6 +30,9 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authAPI.login({ email, password })
       setAuthData(response.user, response.tokens)
       return response
+    } catch (error) {
+      console.error('Login error in store:', error)
+      throw error
     } finally {
       isLoading.value = false
     }
@@ -41,6 +44,9 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authAPI.register(userData)
       setAuthData(response.user, response.tokens)
       return response
+    } catch (error) {
+      console.error('Registration error in store:', error)
+      throw error
     } finally {
       isLoading.value = false
     }
@@ -59,8 +65,14 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function setAuthData(userData: User, tokens: AuthTokens) {
+    console.log('🔧 Setting auth data:', { userData, tokens: { ...tokens, access_token: tokens.access_token?.substring(0, 20) + '...' } })
     user.value = userData
     setTokens(tokens)
+    console.log('✅ Auth data set successfully:', {
+      userSet: !!user.value,
+      tokenSet: !!accessToken.value,
+      isAuthenticated: isAuthenticated.value
+    })
   }
 
   function updateUserTier(tier: UserTier) {
@@ -70,6 +82,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function setTokens(tokens: AuthTokens) {
+    console.log('🔑 Setting tokens:', { access_token: tokens.access_token?.substring(0, 20) + '...', refresh_token: tokens.refresh_token?.substring(0, 10) + '...' })
     accessToken.value = tokens.access_token
     refreshToken.value = tokens.refresh_token
     
@@ -79,6 +92,15 @@ export const useAuthStore = defineStore('auth', () => {
     // Store in localStorage for persistence
     localStorage.setItem('stock_tracker_access_token', tokens.access_token)
     localStorage.setItem('stock_tracker_refresh_token', tokens.refresh_token)
+    
+    console.log('✅ Tokens set and stored:', {
+      accessTokenSet: !!accessToken.value,
+      refreshTokenSet: !!refreshToken.value,
+      localStorage: {
+        access: !!localStorage.getItem('stock_tracker_access_token'),
+        refresh: !!localStorage.getItem('stock_tracker_refresh_token')
+      }
+    })
   }
 
   function logout() {
@@ -116,7 +138,7 @@ export const useAuthStore = defineStore('auth', () => {
     window.addEventListener('token-expired', async () => {
       try {
         await refreshTokens()
-      } catch (error) {
+      } catch {
         logout()
       }
     })

@@ -4,16 +4,16 @@
       <div class="flex-1 min-w-48">
         <label class="block text-sm font-medium text-gray-700 mb-1">Filter by Type</label>
         <select 
-          v-model="localFilters.recommendation_type"
+          v-model="localFilters.type"
           @change="emitUpdate"
           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
         >
           <option value="">All Types</option>
-          <option value="Strong Buy">Strong Buy</option>
-          <option value="Buy">Buy</option>
-          <option value="Hold">Hold</option>
-          <option value="Sell">Sell</option>
-          <option value="Strong Sell">Strong Sell</option>
+          <option value="strong_buy">Strong Buy</option>
+          <option value="buy">Buy</option>
+          <option value="hold">Hold</option>
+          <option value="sell">Sell</option>
+          <option value="strong_sell">Strong Sell</option>
         </select>
       </div>
       
@@ -24,9 +24,10 @@
           @input="emitUpdate"
           type="number"
           min="0"
-          max="100"
+          max="1"
+          step="0.1"
           class="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-          placeholder="0"
+          placeholder="0.0"
         />
       </div>
       
@@ -50,18 +51,24 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 
+interface Filters {
+  type?: string
+  min_score?: number
+  limit?: number
+}
+
 interface Props {
-  filters: Record<string, any>
+  filters: Filters
   maxRecommendations: number
 }
 
 const props = defineProps<Props>()
 const emit = defineEmits<{
-  updateFilters: [filters: Record<string, any>]
+  updateFilters: [filters: Filters]
 }>()
 
-const localFilters = ref({
-  recommendation_type: props.filters.recommendation_type || '',
+const localFilters = ref<Filters>({
+  type: props.filters.type || '',
   min_score: props.filters.min_score || 0,
   limit: props.filters.limit || 10
 })
