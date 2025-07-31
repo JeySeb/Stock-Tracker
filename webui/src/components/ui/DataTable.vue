@@ -33,11 +33,13 @@
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
-            <tr v-if="isLoading" v-for="n in 5" :key="n" class="animate-pulse">
-              <td v-for="column in columns" :key="column.key" class="px-6 py-4">
-                <div class="h-4 bg-gray-200 rounded"></div>
-              </td>
-            </tr>
+            <template v-if="isLoading">
+              <tr v-for="n in 5" :key="n" class="animate-pulse">
+                <td v-for="column in columns" :key="column.key" class="px-6 py-4">
+                  <div class="h-4 bg-gray-200 rounded"></div>
+                </td>
+              </tr>
+            </template>
             <tr v-else-if="data.length === 0">
               <td :colspan="columns.length" class="px-6 py-8 text-center text-gray-500">
                 <slot name="empty">
@@ -47,25 +49,26 @@
                 </slot>
               </td>
             </tr>
-            <tr
-              v-else
-              v-for="(item, index) in data"
-              :key="item.id || index"
-              class="hover:bg-gray-50 cursor-pointer"
-              @click="$emit('rowClick', item)"
-            >
-              <td
-                v-for="column in columns"
-                :key="column.key"
-                class="px-6 py-4 whitespace-nowrap text-sm"
+            <template v-else>
+              <tr
+                v-for="(item, index) in data"
+                :key="(item as any)?.id || `row-${index}`"
+                class="hover:bg-gray-50 cursor-pointer"
+                @click="$emit('rowClick', item)"
               >
-                <slot :name="`cell-${column.key}`" :item="item" :value="item[column.key]">
-                  <span :class="getCellClass(column.key, item[column.key])">
-                    {{ formatCellValue(column, item[column.key]) }}
-                  </span>
-                </slot>
-              </td>
-            </tr>
+                <td
+                  v-for="column in columns"
+                  :key="column.key"
+                  class="px-6 py-4 whitespace-nowrap text-sm"
+                >
+                  <slot :name="`cell-${column.key}`" :item="item" :value="item[column.key]">
+                    <span :class="getCellClass(column.key, item[column.key])">
+                      {{ formatCellValue(column, item[column.key]) }}
+                    </span>
+                  </slot>
+                </td>
+              </tr>
+            </template>
           </tbody>
         </table>
       </div>
@@ -85,22 +88,21 @@
   </template>
   
   <script setup lang="ts">
-  import { computed } from 'vue'
   import { ChevronUpIcon, ChevronDownIcon, ChevronUpDownIcon } from '@heroicons/vue/24/outline'
   import TablePagination from './TablePagination.vue'
   
-  interface Column {
-    key: string
+  interface Column<T = Record<string, unknown>> {
+    key: keyof T
     label: string
     sortable?: boolean
     type?: 'text' | 'number' | 'date' | 'currency' | 'percentage'
-    format?: (value: any) => string
+    format?: (value: T[keyof T]) => string
   }
   
-  interface Props {
+  interface Props<T = Record<string, unknown>> {
     title: string
-    columns: Column[]
-    data: any[]
+    columns: Column<T>[]
+    data: T[]
     isLoading?: boolean
     emptyMessage?: string
     sortBy?: string
@@ -122,7 +124,7 @@
   
   const emit = defineEmits<{
     sort: [{ column: string; order: 'asc' | 'desc' }]
-    rowClick: [item: any]
+    rowClick: [item: Record<string, unknown>]
     pageChange: [page: number]
   }>()
   
@@ -137,43 +139,44 @@
     return props.sortOrder === 'asc' ? ChevronUpIcon : ChevronDownIcon
   }
   
-  function formatCellValue(column: Column, value: any): string {
+  function formatCellValue(column: Column, value: unknown): string {
     if (value === null || value === undefined) return '-'
     
     if (column.format) {
-      return column.format(value)
+      return column.format(value as never)
     }
     
     switch (column.type) {
       case 'date':
-        return new Date(value).toLocaleDateString()
+        return new Date(value as string | number).toLocaleDateString()
       case 'currency':
         return new Intl.NumberFormat('en-US', {
           style: 'currency',
           currency: 'USD'
-        }).format(value)
+        }).format(value as number)
       case 'percentage':
-        return `${(value * 100).toFixed(2)}%`
+        return `${((value as number) * 100).toFixed(2)}%`
       case 'number':
-        return typeof value === 'number' ? value.toLocaleString() : value
+        return typeof value === 'number' ? value.toLocaleString() : String(value)
       default:
-        return value.toString()
+        return String(value)
     }
   }
   
-  function getCellClass(column: string, value: any): string {
+  function getCellClass(column: string, value: unknown): string {
     const baseClass = 'text-gray-900'
     
     // Add specific styling for financial data
     if (column.includes('target') || column.includes('price')) {
-      if (value > 0) return `${baseClass} text-financial-buy`
-      if (value < 0) return `${baseClass} text-financial-sell`
+      if (typeof value === 'number' && value > 0) return `${baseClass} text-financial-buy`
+      if (typeof value === 'number' && value < 0) return `${baseClass} text-financial-sell`
     }
     
     if (column.includes('rating')) {
-      if (value?.toLowerCase().includes('buy')) return `${baseClass} text-financial-buy font-medium`
-      if (value?.toLowerCase().includes('sell')) return `${baseClass} text-financial-sell font-medium`
-      if (value?.toLowerCase().includes('hold')) return `${baseClass} text-financial-hold font-medium`
+      const stringValue = String(value).toLowerCase()
+      if (stringValue.includes('buy')) return `${baseClass} text-financial-buy font-medium`
+      if (stringValue.includes('sell')) return `${baseClass} text-financial-sell font-medium`
+      if (stringValue.includes('hold')) return `${baseClass} text-financial-hold font-medium`
     }
     
     return baseClass

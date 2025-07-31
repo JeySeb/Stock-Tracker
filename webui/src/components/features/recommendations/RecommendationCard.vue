@@ -100,7 +100,6 @@
   </template>
   
   <script setup lang="ts">
-  import { computed } from 'vue'
   import RecommendationBadge from './RecommendationBadge.vue'
   import type { Recommendation, UserTier } from '@/types'
   
@@ -109,7 +108,7 @@
     userTier: UserTier
   }
   
-  const props = defineProps<Props>()
+  defineProps<Props>()
   
   defineEmits<{
     viewDetails: [recommendation: Recommendation]

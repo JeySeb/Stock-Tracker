@@ -26,7 +26,7 @@ export const useSubscriptionStore = defineStore('subscription', () => {
     try {
       const response = await subscriptionAPI.getCurrentSubscription()
       currentSubscription.value = response
-    } catch (error) {
+    } catch {
       // No active subscription is not an error
       currentSubscription.value = null
     } finally {

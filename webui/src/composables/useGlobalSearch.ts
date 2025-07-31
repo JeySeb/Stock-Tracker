@@ -1,4 +1,4 @@
-import { ref, computed, watch } from 'vue'
+import { ref, watch, readonly } from 'vue'
 import { debounce } from 'lodash-es'
 import { useStocksStore } from '@/stores/stocks'
 import { useRecommendationsStore } from '@/stores/recommendations'
@@ -10,7 +10,7 @@ export interface SearchResult {
   title: string
   subtitle: string
   description: string
-  data: StockEvent | Recommendation | any
+  data: StockEvent | Recommendation | { name: string }
   relevance: number
 }
 
@@ -79,7 +79,7 @@ export function useGlobalSearch() {
   }
 
   const searchStocks = async (query: string): Promise<SearchResult[]> => {
-    const response = await stocksStore.fetchStocks()
+    await stocksStore.fetchStocks()
     const stocks = stocksStore.stocks
 
     return stocks
@@ -98,7 +98,6 @@ export function useGlobalSearch() {
         relevance: calculateStockRelevance(stock, query)
       }))
   }
-
   const searchRecommendations = async (query: string): Promise<SearchResult[]> => {
     await recommendationsStore.fetchRecommendations()
     const recommendations = recommendationsStore.recommendations
@@ -114,7 +113,10 @@ export function useGlobalSearch() {
         title: rec.ticker,
         subtitle: rec.company_name,
         description: `${rec.recommendation_type} - Score: ${(rec.basic_score * 100).toFixed(0)}%`,
-        data: rec,
+        data: {
+          ...rec,
+          scoring_factors: rec.scoring_factors.map(factor => ({ ...factor })) // Create mutable copy of each scoring factor
+        },
         relevance: calculateRecommendationRelevance(rec, query)
       }))
   }

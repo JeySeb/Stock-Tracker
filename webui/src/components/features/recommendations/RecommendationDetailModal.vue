@@ -31,11 +31,11 @@
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <span class="text-sm font-medium text-gray-500">Basic Score</span>
-                <p class="text-lg font-semibold">{{ recommendation.basic_score }}/100</p>
+                <p class="text-lg font-semibold">{{ (recommendation.basic_score*100).toFixed(2) }}/100</p>
               </div>
               <div>
                 <span class="text-sm font-medium text-gray-500">Confidence</span>
-                <p class="text-lg font-semibold">{{ recommendation.confidence }}%</p>
+                <p class="text-lg font-semibold">{{ recommendation.confidence }}</p>
               </div>
             </div>
             
@@ -74,7 +74,7 @@ import type { Recommendation, UserTier } from '@/types'
 interface Props {
   isOpen: boolean
   recommendation?: Recommendation | null
-  previewData?: any
+  previewData?: unknown
   userTier: UserTier
 }
 

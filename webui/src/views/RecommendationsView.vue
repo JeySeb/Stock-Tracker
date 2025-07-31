@@ -20,7 +20,7 @@
       />
   
       <!-- Filters -->
-      <RecommendationFilters
+      <RecommendationFiltersComponent
         :filters="recommendationsStore.filters"
         :max-recommendations="recommendationsStore.maxRecommendations"
         @update-filters="handleFiltersUpdate"
@@ -75,10 +75,10 @@
   import { onMounted, ref, computed } from 'vue'
   import { useRouter } from 'vue-router'
   import { useAuthStore } from '@/stores/auth'
-  import { useRecommendationsStore } from '@/stores/recommendations'
+  import { useRecommendationsStore, type RecommendationFilters } from '@/stores/recommendations'
   import TierBadge from '@/components/ui/TierBadge.vue'
   import RecommendationTierInfo from '@/components/features/recommendations/RecommendationTierInfo.vue'
-  import RecommendationFilters from '@/components/features/recommendations/RecommendationFilters.vue'
+  import RecommendationFiltersComponent from '@/components/features/recommendations/RecommendationFilters.vue'
   import RecommendationCard from '@/components/features/recommendations/RecommendationCard.vue'
   import RecommendationDetailModal from '@/components/features/recommendations/RecommendationDetailModal.vue'
   import type { Recommendation } from '@/types'
@@ -102,7 +102,8 @@
     recommendationsStore.fetchRecommendations()
   })
   
-  function handleFiltersUpdate() {
+  function handleFiltersUpdate(newFilters: RecommendationFilters) {
+    recommendationsStore.updateFilters(newFilters)
     recommendationsStore.fetchRecommendations()
   }
   

@@ -8,7 +8,7 @@ export interface User {
   last_name: string
   tier: UserTier
   is_verified: boolean
-  last_login: string | null
+  last_login?: string | null
   created_at: string
   updated_at: string
 }
@@ -63,7 +63,7 @@ export interface Recommendation {
   basic_score: number
   confidence: number
   recommendation_type: 'Strong Buy' | 'Buy' | 'Hold' | 'Sell' | 'Strong Sell'
-  scoring_factors: ScoringFactor[]
+  scoring_factors: readonly ScoringFactor[]
   tier: 'basic' | 'enriched' | 'premium'
   external_data?: ExternalData
   ai_insights?: AIInsights
