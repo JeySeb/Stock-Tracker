@@ -24,6 +24,16 @@ export interface AuthResponse {
   tokens: AuthTokens
 }
 
+// API Response Types
+export interface APIResponse<T> {
+  data: T
+  message: string
+  metadata: {
+    generated_at: string
+    data_points: number
+  }
+}
+
 // Stock Types
 export interface StockEvent {
   id: string
@@ -139,4 +149,66 @@ export interface Subscription {
   payment_reference?: string
   created_at: string
   updated_at: string
+}
+
+// Market Data Types
+export interface MarketSummary {
+  avg_day_change_percent: number
+  bullish_count: number
+  bearish_count: number
+  most_active_ticker: string
+  best_performer: string
+  worst_performer: string
+  total_stocks: number
+  last_updated: string
+}
+
+export interface MarketDataStock {
+  ticker: string
+  company_name: string
+  current_price: number
+  day_change: number
+  day_change_percent: number
+  volume: number
+  volume_activity: number
+  volatility_score: number
+  risk_level: 'Low' | 'Medium' | 'High'
+  last_updated: string
+}
+
+export interface StockAnalysis {
+  ticker: string
+  company_name: string
+  current_price: number
+  day_change_percent: number
+  risk_level: 'Low' | 'Medium' | 'High'
+  volatility_score: number
+  volume: number
+  market_cap?: number
+  pe_ratio?: number
+  dividend_yield?: number
+  week_52_high?: number
+  week_52_low?: number
+  avg_volume?: number
+  last_updated: string
+}
+
+export interface MarketDataTrend {
+  timestamp: string
+  price: number
+  volume: number
+}
+
+export interface MarketDataTrendResponse {
+  ticker: string
+  period: string
+  data: readonly MarketDataTrend[]
+}
+
+export interface MarketDataRecommendation {
+  ticker: string
+  basic_score: number
+  broker_consensus: string
+  confidence: number
+  recommendation_type: 'Strong Buy' | 'Buy' | 'Hold' | 'Sell' | 'Strong Sell'
 }

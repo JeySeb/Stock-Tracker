@@ -54,6 +54,13 @@ watch(() => authStore.user, (newUser) => {
               >
                 Recommendations
               </RouterLink>
+              <RouterLink
+                to="/real-time-data"
+                class="inline-flex items-center px-1 pt-1 text-sm font-medium text-gray-900 border-b-2"
+                :class="[$route.name === 'real-time-data' ? 'border-primary-500' : 'border-transparent hover:border-gray-300']"
+              >
+                Real-Time Data
+              </RouterLink>
             </div>
           </div>
           <!-- Right side -->

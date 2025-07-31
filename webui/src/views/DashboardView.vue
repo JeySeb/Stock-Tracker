@@ -81,6 +81,14 @@
           :link="{ name: 'stocks' }"
           available
         />
+        
+        <FeatureCard
+          title="Real-Time Data"
+          description="Access live market data and external analytics"
+          icon="📊"
+          :link="{ name: 'real-time-data' }"
+          available
+        />
   
         <FeatureCard
           title="Recommendations"
@@ -129,6 +137,22 @@
         />
       </div>
   
+      <!-- Debug Section (Development Only) -->
+      <div v-if="isDev" class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+        <h3 class="text-lg font-semibold text-yellow-900 mb-2">Debug Info</h3>
+        <div class="space-y-2 text-sm">
+          <div>Auth State: {{ authStore.isAuthenticated ? '✅ Authenticated' : '❌ Not Authenticated' }}</div>
+          <div>User Tier: {{ authStore.userTier }}</div>
+          <div>Has Real-time Data: {{ authStore.hasFeature('real_time_data') ? '✅ Yes' : '❌ No' }}</div>
+          <button 
+            @click="testRealTimeDataAccess"
+            class="px-3 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700"
+          >
+            Test Real-Time Data Access
+          </button>
+        </div>
+      </div>
+
       <!-- Recent Activity -->
       <div class="bg-white rounded-lg shadow-sm border border-gray-200">
         <div class="px-6 py-4 border-b border-gray-200">
@@ -211,6 +235,8 @@
     }))
   })
   
+  const isDev = computed(() => import.meta.env.DEV)
+  
   onMounted(async () => {
     try {
       await Promise.allSettled([
@@ -229,5 +255,21 @@
   
   function handleViewStock(ticker: string) {
     router.push({ name: 'stocks', query: { ticker } })
+  }
+  
+  function testRealTimeDataAccess() {
+    console.log('🧪 Testing Real-Time Data access...')
+    console.log('Auth state:', {
+      isAuthenticated: authStore.isAuthenticated,
+      userTier: authStore.userTier,
+      hasFeature: authStore.hasFeature('real_time_data')
+    })
+    
+    // Try to navigate to real-time data
+    router.push('/real-time-data').then(() => {
+      console.log('✅ Successfully navigated to real-time data')
+    }).catch((error) => {
+      console.error('❌ Failed to navigate to real-time data:', error)
+    })
   }
   </script>
