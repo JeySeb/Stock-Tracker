@@ -11,16 +11,12 @@ import (
 )
 
 const (
-
 	// Password requirements
 	minPasswordLength = 8
 	maxPasswordLength = 128
 
 	// Password cost for bcrypt
 	bcryptCost = bcrypt.DefaultCost
-
-	// Account lockout
-	maxLoginAttempts = 5
 )
 
 // User represents a user entity in the system
@@ -122,7 +118,7 @@ func ValidatePasswordStrength(password string) error {
 		case '0' <= char && char <= '9':
 			hasDigit = true
 		case char >= 33 && char <= 126:
-			if !((char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9')) {
+			if (char < 'A' || char > 'Z') && (char < 'a' || char > 'z') && (char < '0' || char > '9') {
 				hasSpecial = true
 			}
 		}

@@ -49,6 +49,8 @@ func (l *MockLogger) Info(msg string, keysAndValues ...interface{})  {}
 func (l *MockLogger) Warn(msg string, keysAndValues ...interface{})  {}
 func (l *MockLogger) Error(msg string, keysAndValues ...interface{}) {}
 
+// Note: MockBasicScoringCalculator and MockExternalDataEnricher are defined in tiered_recommendation_comprehensive_test.go
+
 func TestTieredRecommendationUseCase_Initialization(t *testing.T) {
 	// Setup mocks
 	mockRepo := new(mocks.MockStockRepository)

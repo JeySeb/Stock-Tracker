@@ -8,6 +8,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 
+	recommendationModel "stock-tracker/internal/domain/recommendation/model"
 	recommendationUsecase "stock-tracker/internal/domain/recommendation/usecase"
 	"stock-tracker/internal/domain/shared/enums"
 	"stock-tracker/internal/infrastructure/middleware"
@@ -112,7 +113,7 @@ func (h *RecommendationHandler) GetRecommendationByTicker(w http.ResponseWriter,
 
 	// Validate ticker contains only letters and numbers
 	for _, char := range ticker {
-		if !((char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9')) {
+		if (char < 'A' || char > 'Z') && (char < '0' || char > '9') {
 			render.Status(r, http.StatusBadRequest)
 			render.JSON(w, r, map[string]string{
 				"error": "Ticker contains invalid characters",
@@ -221,74 +222,73 @@ func (h *RecommendationHandler) GetRecommendationPreview(w http.ResponseWriter, 
 
 // Helper methods
 
-// filterResponseByTier filters the entire response based on user tier
+// filterResponseByTier filters the response based on user tier for security
 func (h *RecommendationHandler) filterResponseByTier(
 	response *recommendationUsecase.RecommendationResponse,
 	userTier enums.UserTier,
 ) *recommendationUsecase.RecommendationResponse {
+	// Create a filtered copy of the response
+	filteredResponse := &recommendationUsecase.RecommendationResponse{
+		Meta: response.Meta,
+	}
 
-	filteredData := make([]*struct {
-		*recommendationUsecase.RecommendationResponse
-		Data interface{} `json:"data"`
-	}, len(response.Data))
-
-	for i, rec := range response.Data {
-		filteredData[i] = &struct {
-			*recommendationUsecase.RecommendationResponse
-			Data interface{} `json:"data"`
-		}{
-			Data: h.filterSingleRecommendationByTier(rec, userTier),
+	// Filter each recommendation based on user tier
+	for _, rec := range response.Data {
+		filteredRec := h.filterSingleRecommendationByTier(rec, userTier)
+		if filteredRec != nil {
+			filteredResponse.Data = append(filteredResponse.Data, filteredRec)
 		}
 	}
 
-	return response // Return as-is since Go will handle JSON filtering
+	// Update the count in meta
+	filteredResponse.Meta.Count = len(filteredResponse.Data)
+
+	return filteredResponse
 }
 
 // filterSingleRecommendationByTier filters a single recommendation based on user tier
 func (h *RecommendationHandler) filterSingleRecommendationByTier(
-	rec interface{},
+	rec *recommendationModel.AggregatedRecommendation,
 	userTier enums.UserTier,
-) interface{} {
-
-	// Create a map for flexible filtering
-	recMap := map[string]interface{}{
-		"id":                  rec,
-		"ticker":              rec,
-		"company_name":        rec,
-		"total_events":        rec,
-		"positive_events":     rec,
-		"negative_events":     rec,
-		"avg_target_change":   rec,
-		"latest_target_price": rec,
-		"broker_consensus":    rec,
-		"basic_score":         rec,
-		"confidence":          rec,
-		"recommendation_type": rec,
-		"scoring_factors":     rec,
-		"tier":                rec,
-		"last_event_time":     rec,
-		"created_at":          rec,
-		"expires_at":          rec,
+) *recommendationModel.AggregatedRecommendation {
+	// Create a copy of the recommendation
+	filteredRec := &recommendationModel.AggregatedRecommendation{
+		ID:                 rec.ID,
+		Ticker:             rec.Ticker,
+		CompanyName:        rec.CompanyName,
+		TotalEvents:        rec.TotalEvents,
+		PositiveEvents:     rec.PositiveEvents,
+		NegativeEvents:     rec.NegativeEvents,
+		AvgTargetChange:    rec.AvgTargetChange,
+		LatestTargetPrice:  rec.LatestTargetPrice,
+		BrokerConsensus:    rec.BrokerConsensus,
+		BasicScore:         rec.BasicScore,
+		Confidence:         rec.Confidence,
+		RecommendationType: rec.RecommendationType,
+		ScoringFactors:     rec.ScoringFactors,
+		Tier:               rec.Tier,
+		LastEventTime:      rec.LastEventTime,
+		CreatedAt:          rec.CreatedAt,
+		ExpiresAt:          rec.ExpiresAt,
 	}
 
-	// Add tier-specific data
+	// Add tier-specific data based on user tier
 	switch userTier {
 	case enums.TIER_GUEST:
 		// Only basic data - external_data and ai_insights are omitted
+		// (already nil by default)
 
 	case enums.TIER_BASIC:
 		// Add external data
-		recMap["external_data"] = rec
+		filteredRec.ExternalData = rec.ExternalData
 
 	case enums.TIER_PREMIUM:
 		// Add all data
-		recMap["external_data"] = rec
-		recMap["ai_insights"] = rec
+		filteredRec.ExternalData = rec.ExternalData
+		filteredRec.AIInsights = rec.AIInsights
 	}
 
-	// In a real implementation, this would use proper struct filtering
-	// For now, return the original rec (the actual filtering would happen in JSON serialization)
-	return rec
+	return filteredRec
 }
 
 // parseIntParam parses an integer parameter with a default value

@@ -43,7 +43,11 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, map[string]string{"error": "Invalid request body"})
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			h.logger.Error("Failed to close request body", "error", err)
+		}
+	}()
 
 	if err := h.validator.Struct(req); err != nil {
 		h.logger.Info("Invalid register request", "error", err)
@@ -75,7 +79,11 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, map[string]string{"error": "Invalid request body"})
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			h.logger.Error("Failed to close request body", "error", err)
+		}
+	}()
 
 	if err := h.validator.Struct(req); err != nil {
 		h.logger.Info("Invalid login request", "error", err)
@@ -110,7 +118,11 @@ func (h *AuthHandler) RefreshToken(w http.ResponseWriter, r *http.Request) {
 		render.JSON(w, r, map[string]string{"error": "Invalid request body"})
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			h.logger.Error("Failed to close request body", "error", err)
+		}
+	}()
 
 	if err := h.validator.Struct(req); err != nil {
 		h.logger.Info("Invalid refresh token request", "error", err)

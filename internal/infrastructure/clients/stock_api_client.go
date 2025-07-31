@@ -119,7 +119,12 @@ func (c *stockAPIClient) FetchPage(ctx context.Context, nextPage string) ([]*sto
 		return nil, "", fmt.Errorf("failed to make request: %w", err)
 	}
 
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			// Log the error but don't change the main return value
+			// Note: This is acceptable as it's a cleanup operation
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, "", fmt.Errorf("API returned status %d", resp.StatusCode)

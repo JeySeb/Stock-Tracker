@@ -8,10 +8,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	marketDataUsecases "stock-tracker/internal/domain/marketdata/usecase"
 	stockUsecases "stock-tracker/internal/domain/stocks/usecase"
 	"stock-tracker/internal/infrastructure/clients"
 	"stock-tracker/internal/infrastructure/config"
 	"stock-tracker/internal/infrastructure/database"
+	"stock-tracker/internal/infrastructure/external"
 	"stock-tracker/pkg/logger"
 
 	"github.com/joho/godotenv"
@@ -41,35 +43,58 @@ func main() {
 		os.Exit(1)
 	}
 
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			logger.Error("Failed to close database", "error", err)
+		}
+	}()
 
 	// Initialize repositories
 	stockRepo := database.NewStockRepository(db.GetPool(), logger)
 	brokerRepo := database.NewBrokerRepository(db.GetPool())
+	marketDataRepo := database.NewMarketDataRepository(db.GetPool(), logger)
 
 	// Initialize external clients
 	stockAPIClient := clients.NewStockAPIClient(cfg.StockAPIURL, cfg.StockAPIKey, logger)
+	yahooClient := external.NewYahooFinanceClient(logger)
 
-	// Initialize the use case
+	// Initialize the use cases
 	stockIngestionUseCase := stockUsecases.NewStockIngestionUseCase(stockRepo, brokerRepo, stockAPIClient, logger)
+	marketDataIngestionUseCase := marketDataUsecases.NewMarketDataIngestionUseCase(marketDataRepo, yahooClient, logger)
 	// Initialize the cron job (cron scheduler)
 	c := cron.New(cron.WithLogger(cron.VerbosePrintfLogger(log.New(os.Stdout, "cron: ", log.LstdFlags))))
 
 	// First run immediately
 	ctx := context.Background()
 	if err := stockIngestionUseCase.IngestStocks(ctx); err != nil {
-		logger.Error("Initial ingestion failed", "error", err)
+		logger.Error("Initial stock ingestion failed", "error", err)
 	}
 
-	// Add the cron job to schedule the ingestion every hour
+	// First market data ingestion
+	if err := marketDataIngestionUseCase.IngestMarketData(ctx); err != nil {
+		logger.Error("Initial market data ingestion failed", "error", err)
+	}
+
+	// Add the cron job to schedule the stock ingestion every hour
 	_, err = c.AddFunc("0 * * * *", func() {
 		ctx := context.Background()
 		if err := stockIngestionUseCase.IngestStocks(ctx); err != nil {
-			logger.Error("Ingestion job failed", "error", err)
+			logger.Error("Stock ingestion job failed", "error", err)
 		}
 	})
 	if err != nil {
-		log.Fatal("Failed to schedule ingestion job", "error", err)
+		log.Fatal("Failed to schedule stock ingestion job", "error", err)
+	}
+
+	// Add the cron job to schedule the market data ingestion every hour (at 15 minutes past)
+	_, err = c.AddFunc("15 * * * *", func() {
+		ctx := context.Background()
+		if err := marketDataIngestionUseCase.IngestMarketData(ctx); err != nil {
+			logger.Error("Market data ingestion job failed", "error", err)
+		}
+	})
+	if err != nil {
+		log.Fatal("Failed to schedule market data ingestion job", "error", err)
 	}
 
 	// Start the cron scheduler

@@ -45,7 +45,11 @@ func (h *SubscriptionHandler) CreateSubscription(w http.ResponseWriter, r *http.
 		h.respondWithError(w, r, http.StatusBadRequest, "Invalid request body")
 		return
 	}
-	defer r.Body.Close()
+	defer func() {
+		if err := r.Body.Close(); err != nil {
+			h.logger.Error("Failed to close request body", "error", err)
+		}
+	}()
 
 	if err := h.validator.Struct(req); err != nil {
 		h.logger.Error("Request validation failed", "error", err)

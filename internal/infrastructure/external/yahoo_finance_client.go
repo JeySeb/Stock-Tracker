@@ -119,7 +119,7 @@ func (c *yahooFinanceClient) validateSymbol(symbol string) error {
 
 	// Basic validation for special characters
 	for _, char := range symbol {
-		if !((char >= 'A' && char <= 'Z') || (char >= 'a' && char <= 'z') || (char >= '0' && char <= '9') || char == '.' || char == '-') {
+		if (char < 'A' || char > 'Z') && (char < 'a' || char > 'z') && (char < '0' || char > '9') && char != '.' && char != '-' {
 			return ErrInvalidSymbol
 		}
 	}
@@ -159,18 +159,18 @@ func (c *yahooFinanceClient) executeWithRetry(ctx context.Context, req *http.Req
 		// Handle specific HTTP status codes
 		switch resp.StatusCode {
 		case http.StatusTooManyRequests:
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			lastErr = ErrAPIQuotaExceeded
 			continue
 		case http.StatusNotFound:
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			return nil, ErrSymbolNotFound
 		case http.StatusServiceUnavailable, http.StatusBadGateway:
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			lastErr = ErrAPIUnavailable
 			continue
 		default:
-			resp.Body.Close()
+			_ = resp.Body.Close()
 			lastErr = fmt.Errorf("API returned status %d", resp.StatusCode)
 			continue
 		}
@@ -211,7 +211,11 @@ func (c *yahooFinanceClient) GetQuote(ctx context.Context, symbol string) (*mode
 			"error", err)
 		return nil, fmt.Errorf("failed to execute request for symbol %s: %w", symbol, err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			c.logger.Error("Failed to close response body", "error", err)
+		}
+	}()
 
 	// Parse response
 	var yahooResp YahooQuoteResponse
@@ -236,7 +240,7 @@ func (c *yahooFinanceClient) validateYahooResponse(resp *YahooQuoteResponse, sym
 		c.logger.Error("Yahoo Finance API returned error",
 			"symbol", symbol,
 			"error", resp.Chart.Error)
-		return fmt.Errorf("Yahoo Finance API error for symbol %s: %v", symbol, resp.Chart.Error)
+		return fmt.Errorf("yahoo Finance API error for symbol %s: %v", symbol, resp.Chart.Error)
 	}
 
 	if len(resp.Chart.Result) == 0 {
@@ -395,7 +399,11 @@ func (c *alphaVantageClient) GetQuote(ctx context.Context, symbol string) (*mode
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			c.logger.Error("Failed to close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("API returned status %d for symbol %s", resp.StatusCode, symbol)
@@ -431,7 +439,11 @@ func (c *alphaVantageClient) GetCompanyOverview(ctx context.Context, symbol stri
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute request: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			c.logger.Error("Failed to close response body", "error", err)
+		}
+	}()
 
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("API returned status %d for symbol %s", resp.StatusCode, symbol)

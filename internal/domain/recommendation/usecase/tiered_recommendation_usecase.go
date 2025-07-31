@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -80,6 +81,11 @@ func (uc *TieredRecommendationUseCase) GetRecommendations(
 ) (*RecommendationResponse, error) {
 
 	startTime := time.Now()
+
+	// Validate input parameters
+	if err := uc.validateRequest(request); err != nil {
+		return nil, fmt.Errorf("invalid request: %w", err)
+	}
 
 	// 1. Apply tier-based limits
 	limit := uc.applyTierLimits(request.UserTier, request.Limit)
@@ -335,10 +341,7 @@ func (uc *TieredRecommendationUseCase) generateRecommendationsFromEvents(
 			select {
 			case semaphore <- struct{}{}:
 				defer func() {
-					select {
-					case <-semaphore:
-					default:
-					}
+					<-semaphore // Release semaphore properly
 				}()
 			case <-goroutineCtx.Done():
 				uc.logger.Debug("Goroutine cancelled before acquiring semaphore", "ticker", ticker)
@@ -513,8 +516,33 @@ func (uc *TieredRecommendationUseCase) getAvailableFeatures(userTier enums.UserT
 
 // buildCacheKey creates a unique cache key for the request
 func (uc *TieredRecommendationUseCase) buildCacheKey(userTier enums.UserTier, limit int, filters RecommendationFilters) string {
-	// Simple cache key - in production this would be more sophisticated
-	return fmt.Sprintf("recommendations:%s:%d", userTier, limit)
+	// Create a more sophisticated cache key that includes filters
+	key := fmt.Sprintf("recommendations:%s:%d", userTier, limit)
+
+	// Add filter components to the key
+	if filters.MinScore != nil {
+		key += fmt.Sprintf(":min_score_%.2f", *filters.MinScore)
+	}
+
+	if filters.RecommendationType != nil {
+		key += fmt.Sprintf(":type_%s", *filters.RecommendationType)
+	}
+
+	if len(filters.ExcludeTickers) > 0 {
+		// Sort for consistent ordering
+		excluded := make([]string, len(filters.ExcludeTickers))
+		copy(excluded, filters.ExcludeTickers)
+		// Note: In production, you might want to hash this for very long lists
+		key += fmt.Sprintf(":exclude_%s", strings.Join(excluded, ","))
+	}
+
+	if len(filters.Sectors) > 0 {
+		sectors := make([]string, len(filters.Sectors))
+		copy(sectors, filters.Sectors)
+		key += fmt.Sprintf(":sectors_%s", strings.Join(sectors, ","))
+	}
+
+	return key
 }
 
 // tryGetFromCache attempts to retrieve recommendations from cache
@@ -548,4 +576,41 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+// validateRequest validates the recommendation request parameters
+func (uc *TieredRecommendationUseCase) validateRequest(request RecommendationRequest) error {
+	// Validate user tier
+	switch request.UserTier {
+	case enums.TIER_GUEST, enums.TIER_BASIC, enums.TIER_PREMIUM:
+		// Valid tiers
+	default:
+		return fmt.Errorf("invalid user tier: %s", request.UserTier)
+	}
+
+	// Validate limit
+	if request.Limit <= 0 {
+		return fmt.Errorf("limit must be positive, got: %d", request.Limit)
+	}
+
+	// Validate min score if provided
+	if request.Filters.MinScore != nil {
+		if *request.Filters.MinScore < 0 || *request.Filters.MinScore > 1 {
+			return fmt.Errorf("min_score must be between 0 and 1, got: %f", *request.Filters.MinScore)
+		}
+	}
+
+	// Validate recommendation type if provided
+	if request.Filters.RecommendationType != nil {
+		switch *request.Filters.RecommendationType {
+		case enums.RECOMMENDATION_TYPE_STRONG_BUY, enums.RECOMMENDATION_TYPE_BUY,
+			enums.RECOMMENDATION_TYPE_HOLD, enums.RECOMMENDATION_TYPE_SELL,
+			enums.RECOMMENDATION_TYPE_STRONG_SELL:
+			// Valid types
+		default:
+			return fmt.Errorf("invalid recommendation type: %s", *request.Filters.RecommendationType)
+		}
+	}
+
+	return nil
 }

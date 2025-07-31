@@ -114,7 +114,7 @@ func setupTestEnvironment() *IntegrationTestSuite {
 
 func teardownTestEnvironment(suite *IntegrationTestSuite) {
 	if suite.db != nil {
-		suite.db.Close()
+		_ = suite.db.Close()
 	}
 }
 
@@ -233,6 +233,7 @@ func TestRecommendationAPI_AuthenticatedUser(t *testing.T) {
 	if len(response.Data) > 0 {
 		// Note: External data may be nil if external APIs are not available in test environment
 		// This is acceptable for integration testing
+		assert.NotNil(t, response.Data[0]) // Ensure at least basic data structure is present
 	}
 }
 

@@ -2,6 +2,8 @@ package database
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -61,7 +63,13 @@ func (r *stockRepository) BulkCreate(ctx context.Context, stocks []*stockModel.S
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			// Log rollback error but don't override the main error
+			// Note: Rollback errors during cleanup are typically non-critical
+			r.logger.Error("Failed to rollback transaction", "error", err)
+		}
+	}()
 
 	query := `
         INSERT INTO stocks (id, ticker, company, broker_id, action, rating_from, rating_to, 
@@ -182,7 +190,6 @@ func (r *stockRepository) buildWhereClause(filters stockValidation.StockFilters)
 	if filters.DateTo != nil {
 		conditions = append(conditions, fmt.Sprintf("s.event_time <= $%d", argIndex))
 		args = append(args, *filters.DateTo)
-		argIndex++
 	}
 
 	if len(conditions) == 0 {
@@ -369,7 +376,13 @@ func (r *stockRepository) BulkUpdate(ctx context.Context, stocks []*stockModel.S
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback(ctx)
+	defer func() {
+		if err := tx.Rollback(ctx); err != nil && !errors.Is(err, sql.ErrTxDone) {
+			// Log rollback error but don't override the main error
+			// Note: Rollback errors during cleanup are typically non-critical
+			r.logger.Error("Failed to rollback transaction", "error", err)
+		}
+	}()
 
 	query := `
         UPDATE stocks 
