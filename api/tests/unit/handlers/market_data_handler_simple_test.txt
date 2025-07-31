@@ -1,0 +1,654 @@
+package handlers_test
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+
+	marketDataModel "stock-tracker/internal/domain/marketdata/model"
+	marketDataUsecases "stock-tracker/internal/domain/marketdata/usecase"
+	"stock-tracker/internal/presentation/handlers"
+	"stock-tracker/tests/mocks"
+)
+
+// SimpleMockMarketDataUseCase is a simplified mock for testing
+type SimpleMockMarketDataUseCase struct {
+	mock.Mock
+}
+
+// Implement only the methods we need for testing
+func (m *SimpleMockMarketDataUseCase) GetMarketDataAnalysis(ctx context.Context, ticker string) (*marketDataModel.MarketDataAnalysis, error) {
+	args := m.Called(ctx, ticker)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*marketDataModel.MarketDataAnalysis), args.Error(1)
+}
+
+func (m *SimpleMockMarketDataUseCase) GetMarketDataTrend(ctx context.Context, ticker string, period string) (*marketDataModel.MarketDataTrend, error) {
+	args := m.Called(ctx, ticker, period)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*marketDataModel.MarketDataTrend), args.Error(1)
+}
+
+func (m *SimpleMockMarketDataUseCase) GetMarketDataSummary(ctx context.Context, period string) (*marketDataModel.MarketDataSummary, error) {
+	args := m.Called(ctx, period)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*marketDataModel.MarketDataSummary), args.Error(1)
+}
+
+func (m *SimpleMockMarketDataUseCase) GetTopPerformers(ctx context.Context, limit int, period string) ([]*marketDataModel.MarketDataAnalysis, error) {
+	args := m.Called(ctx, limit, period)
+	return args.Get(0).([]*marketDataModel.MarketDataAnalysis), args.Error(1)
+}
+
+func (m *SimpleMockMarketDataUseCase) GetWorstPerformers(ctx context.Context, limit int, period string) ([]*marketDataModel.MarketDataAnalysis, error) {
+	args := m.Called(ctx, limit, period)
+	return args.Get(0).([]*marketDataModel.MarketDataAnalysis), args.Error(1)
+}
+
+func (m *SimpleMockMarketDataUseCase) GetMarketDataByTicker(ctx context.Context, ticker string, filters *marketDataModel.MarketDataFilters) ([]*marketDataModel.MarketData, error) {
+	args := m.Called(ctx, ticker, filters)
+	return args.Get(0).([]*marketDataModel.MarketData), args.Error(1)
+}
+
+func (m *SimpleMockMarketDataUseCase) GetLatestMarketData(ctx context.Context, ticker string) (*marketDataModel.MarketData, error) {
+	args := m.Called(ctx, ticker)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*marketDataModel.MarketData), args.Error(1)
+}
+
+func (m *SimpleMockMarketDataUseCase) ParseFiltersFromRequest(params map[string]string) *marketDataModel.MarketDataFilters {
+	args := m.Called(params)
+	return args.Get(0).(*marketDataModel.MarketDataFilters)
+}
+
+func (m *SimpleMockMarketDataUseCase) ValidatePeriod(period string) bool {
+	args := m.Called(period)
+	return args.Bool(0)
+}
+
+func (m *SimpleMockMarketDataUseCase) GetDefaultPeriod() string {
+	args := m.Called()
+	return args.String(0)
+}
+
+func (m *SimpleMockMarketDataUseCase) ValidateLimit(limit int) int {
+	args := m.Called(limit)
+	return args.Int(0)
+}
+
+func (m *SimpleMockMarketDataUseCase) CreateMarketDataResponse(data interface{}, pagination *marketDataModel.Pagination, message string) *marketDataModel.MarketDataResponse {
+	args := m.Called(data, pagination, message)
+	return args.Get(0).(*marketDataModel.MarketDataResponse)
+}
+
+// Test data helpers
+func createMockMarketDataAnalysis(ticker string) *marketDataModel.MarketDataAnalysis {
+	week52High := 150.0
+	week52Low := 100.0
+	return marketDataModel.NewMarketDataAnalysis(
+		ticker,
+		125.0,   // currentPrice
+		5.0,     // dayChange
+		4.0,     // dayChangePercent
+		1000000, // volume
+		&week52High,
+		&week52Low,
+		time.Now(),
+		time.Now(),
+		marketDataModel.DataQualityExcellent,
+		marketDataModel.DataSourceYahooFinance,
+	)
+}
+
+func createMockMarketDataTrend(ticker string) *marketDataModel.MarketDataTrend {
+	return &marketDataModel.MarketDataTrend{
+		Ticker:             ticker,
+		Period:             "1d",
+		StartPrice:         120.0,
+		EndPrice:           125.0,
+		TotalChange:        5.0,
+		TotalChangePercent: 4.0,
+		MaxPrice:           126.0,
+		MinPrice:           119.0,
+		AvgVolume:          1000000,
+		Volatility:         2.5,
+		TrendStrength:      "strong",
+		Direction:          "up",
+		DataPoints:         24,
+	}
+}
+
+func createMockMarketDataSummary() *marketDataModel.MarketDataSummary {
+	return &marketDataModel.MarketDataSummary{
+		TotalRecords:        1000,
+		UniqueTickers:       100,
+		AvgPrice:            125.0,
+		AvgDayChange:        2.5,
+		AvgDayChangePercent: 2.0,
+		TotalVolume:         5000000000,
+		AvgVolume:           5000000,
+		MostActiveTicker:    "AAPL",
+		BestPerformer:       "TSLA",
+		WorstPerformer:      "META",
+		BullishCount:        60,
+		BearishCount:        35,
+		NeutralCount:        5,
+		Period:              "1d",
+		LastUpdated:         time.Now(),
+	}
+}
+
+func createMockMarketData(ticker string) *marketDataModel.MarketData {
+	week52High := 150.0
+	week52Low := 100.0
+	marketCap := int64(2000000000)
+	peRatio := 25.0
+	dividendYield := 2.0
+	avgVolume := int64(1500000)
+
+	return &marketDataModel.MarketData{
+		Ticker:           ticker,
+		DataSource:       marketDataModel.DataSourceYahooFinance,
+		DataQuality:      marketDataModel.DataQualityExcellent,
+		CurrentPrice:     125.0,
+		DayChange:        5.0,
+		DayChangePercent: 4.0,
+		Volume:           1000000,
+		MarketCap:        &marketCap,
+		PERatio:          &peRatio,
+		DividendYield:    &dividendYield,
+		Week52High:       &week52High,
+		Week52Low:        &week52Low,
+		AvgVolume:        &avgVolume,
+		CollectedAt:      time.Now(),
+		DataTimestamp:    time.Now(),
+		CreatedAt:        time.Now(),
+		UpdatedAt:        time.Now(),
+	}
+}
+
+func createMockMarketDataResponse(data interface{}, message string) *marketDataModel.MarketDataResponse {
+	return &marketDataModel.MarketDataResponse{
+		Data:    data,
+		Message: message,
+		Metadata: &marketDataModel.Metadata{
+			GeneratedAt: time.Now(),
+			DataPoints:  1,
+			Period:      "1d",
+		},
+	}
+}
+
+// Test GetMarketDataAnalysis
+func TestMarketDataHandler_GetMarketDataAnalysis_Success(t *testing.T) {
+	// Arrange
+	mockUseCase := &SimpleMockMarketDataUseCase{}
+	mockLogger := &mocks.MockLogger{}
+
+	// Create a real use case instance for the handler
+	realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+	handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+	analysis := createMockMarketDataAnalysis("AAPL")
+	response := createMockMarketDataResponse(analysis, "Market data analysis retrieved successfully")
+
+	mockUseCase.On("GetMarketDataAnalysis", mock.Anything, "AAPL").Return(analysis, nil)
+	mockUseCase.On("CreateMarketDataResponse", analysis, mock.Anything, "Market data analysis retrieved successfully").Return(response)
+
+	req := httptest.NewRequest("GET", "/market-data/analysis/AAPL", nil)
+	chiCtx := chi.NewRouteContext()
+	chiCtx.URLParams.Add("ticker", "AAPL")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
+	w := httptest.NewRecorder()
+
+	// Act
+	handler.GetMarketDataAnalysis(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusOK, w.Code)
+
+	var responseBody marketDataModel.MarketDataResponse
+	err := json.NewDecoder(w.Body).Decode(&responseBody)
+	require.NoError(t, err)
+
+	assert.Equal(t, "Market data analysis retrieved successfully", responseBody.Message)
+	assert.NotNil(t, responseBody.Data)
+
+	mockUseCase.AssertExpectations(t)
+}
+
+func TestMarketDataHandler_GetMarketDataAnalysis_EmptyTicker(t *testing.T) {
+	// Arrange
+	mockLogger := &mocks.MockLogger{}
+	realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+	handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+	req := httptest.NewRequest("GET", "/market-data/analysis/", nil)
+	w := httptest.NewRecorder()
+
+	// Act
+	handler.GetMarketDataAnalysis(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response map[string]string
+	err := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+	assert.Equal(t, "Ticker is required", response["error"])
+}
+
+func TestMarketDataHandler_GetMarketDataAnalysis_UseCaseError(t *testing.T) {
+	// Arrange
+	mockLogger := &mocks.MockLogger{}
+	realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+	handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+	mockLogger.On("Error", "Failed to get market data analysis", "ticker", "INVALID", "error", mock.Anything).Return()
+
+	req := httptest.NewRequest("GET", "/market-data/analysis/INVALID", nil)
+	chiCtx := chi.NewRouteContext()
+	chiCtx.URLParams.Add("ticker", "INVALID")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
+	w := httptest.NewRecorder()
+
+	// Act
+	handler.GetMarketDataAnalysis(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusInternalServerError, w.Code)
+
+	var response map[string]string
+	err := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+	assert.Equal(t, "Failed to retrieve market data analysis", response["error"])
+
+	mockLogger.AssertExpectations(t)
+}
+
+// Test GetMarketDataTrend
+func TestMarketDataHandler_GetMarketDataTrend_Success(t *testing.T) {
+	// Arrange
+	mockLogger := &mocks.MockLogger{}
+	realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+	handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+	req := httptest.NewRequest("GET", "/market-data/trend/AAPL?period=1d", nil)
+	chiCtx := chi.NewRouteContext()
+	chiCtx.URLParams.Add("ticker", "AAPL")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
+	w := httptest.NewRecorder()
+
+	// Act
+	handler.GetMarketDataTrend(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestMarketDataHandler_GetMarketDataTrend_InvalidPeriod(t *testing.T) {
+	// Arrange
+	mockLogger := &mocks.MockLogger{}
+	realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+	handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+	req := httptest.NewRequest("GET", "/market-data/trend/AAPL?period=invalid", nil)
+	chiCtx := chi.NewRouteContext()
+	chiCtx.URLParams.Add("ticker", "AAPL")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
+	w := httptest.NewRecorder()
+
+	// Act
+	handler.GetMarketDataTrend(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response map[string]string
+	err := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+	assert.Equal(t, "Invalid period. Valid periods: 1d, 1w, 1m, 3m", response["error"])
+}
+
+// Test GetMarketDataSummary
+func TestMarketDataHandler_GetMarketDataSummary_Success(t *testing.T) {
+	// Arrange
+	mockLogger := &mocks.MockLogger{}
+	realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+	handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+	req := httptest.NewRequest("GET", "/market-data/summary?period=1d", nil)
+	w := httptest.NewRecorder()
+
+	// Act
+	handler.GetMarketDataSummary(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// Test GetTopPerformers
+func TestMarketDataHandler_GetTopPerformers_Success(t *testing.T) {
+	// Arrange
+	mockLogger := &mocks.MockLogger{}
+	realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+	handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+	req := httptest.NewRequest("GET", "/market-data/top-performers?limit=5&period=1d", nil)
+	w := httptest.NewRecorder()
+
+	// Act
+	handler.GetTopPerformers(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// Test GetWorstPerformers
+func TestMarketDataHandler_GetWorstPerformers_Success(t *testing.T) {
+	// Arrange
+	mockLogger := &mocks.MockLogger{}
+	realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+	handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+	req := httptest.NewRequest("GET", "/market-data/worst-performers?limit=5&period=1d", nil)
+	w := httptest.NewRecorder()
+
+	// Act
+	handler.GetWorstPerformers(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// Test GetMarketDataByTicker
+func TestMarketDataHandler_GetMarketDataByTicker_Success(t *testing.T) {
+	// Arrange
+	mockLogger := &mocks.MockLogger{}
+	realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+	handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+	req := httptest.NewRequest("GET", "/market-data/ticker/AAPL?limit=10", nil)
+	chiCtx := chi.NewRouteContext()
+	chiCtx.URLParams.Add("ticker", "AAPL")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
+	w := httptest.NewRecorder()
+
+	// Act
+	handler.GetMarketDataByTicker(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+// Test GetLatestMarketData
+func TestMarketDataHandler_GetLatestMarketData_Success(t *testing.T) {
+	// Arrange
+	mockLogger := &mocks.MockLogger{}
+	realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+	handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+	req := httptest.NewRequest("GET", "/market-data/latest/AAPL", nil)
+	chiCtx := chi.NewRouteContext()
+	chiCtx.URLParams.Add("ticker", "AAPL")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
+	w := httptest.NewRecorder()
+
+	// Act
+	handler.GetLatestMarketData(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestMarketDataHandler_GetLatestMarketData_NotFound(t *testing.T) {
+	// Arrange
+	mockLogger := &mocks.MockLogger{}
+	realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+	handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+	req := httptest.NewRequest("GET", "/market-data/latest/INVALID", nil)
+	chiCtx := chi.NewRouteContext()
+	chiCtx.URLParams.Add("ticker", "INVALID")
+	req = req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
+	w := httptest.NewRecorder()
+
+	// Act
+	handler.GetLatestMarketData(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusNotFound, w.Code)
+
+	var response map[string]string
+	err := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+	assert.Equal(t, "No market data found for ticker", response["error"])
+}
+
+// Test GetMarketDataComparison (NotImplemented)
+func TestMarketDataHandler_GetMarketDataComparison_NotImplemented(t *testing.T) {
+	// Arrange
+	mockLogger := &mocks.MockLogger{}
+	realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+	handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+	req := httptest.NewRequest("GET", "/market-data/compare?ticker1=AAPL&ticker2=TSLA", nil)
+	w := httptest.NewRecorder()
+
+	// Act
+	handler.GetMarketDataComparison(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusNotImplemented, w.Code)
+
+	var response map[string]string
+	err := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+	assert.Equal(t, "Market data comparison not implemented yet", response["error"])
+}
+
+func TestMarketDataHandler_GetMarketDataComparison_MissingTickers(t *testing.T) {
+	// Arrange
+	mockLogger := &mocks.MockLogger{}
+	realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+	handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+	req := httptest.NewRequest("GET", "/market-data/compare?ticker1=AAPL", nil)
+	w := httptest.NewRecorder()
+
+	// Act
+	handler.GetMarketDataComparison(w, req)
+
+	// Assert
+	assert.Equal(t, http.StatusBadRequest, w.Code)
+
+	var response map[string]string
+	err := json.NewDecoder(w.Body).Decode(&response)
+	require.NoError(t, err)
+	assert.Equal(t, "Both ticker1 and ticker2 are required", response["error"])
+}
+
+// Test error cases for all methods
+func TestMarketDataHandler_ErrorCases(t *testing.T) {
+	tests := []struct {
+		name           string
+		setupMock      func(*mocks.MockLogger)
+		createRequest  func() *http.Request
+		expectedStatus int
+		expectedError  string
+	}{
+		{
+			name: "GetMarketDataTrend_UseCaseError",
+			setupMock: func(mockLogger *mocks.MockLogger) {
+				mockLogger.On("Error", "Failed to get market data trend", "ticker", "AAPL", "period", "1d", "error", mock.Anything).Return()
+			},
+			createRequest: func() *http.Request {
+				req := httptest.NewRequest("GET", "/market-data/trend/AAPL?period=1d", nil)
+				chiCtx := chi.NewRouteContext()
+				chiCtx.URLParams.Add("ticker", "AAPL")
+				return req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectedError:  "Failed to retrieve market data trend",
+		},
+		{
+			name: "GetMarketDataSummary_UseCaseError",
+			setupMock: func(mockLogger *mocks.MockLogger) {
+				mockLogger.On("Error", "Failed to get market data summary", "period", "1d", "error", mock.Anything).Return()
+			},
+			createRequest: func() *http.Request {
+				return httptest.NewRequest("GET", "/market-data/summary?period=1d", nil)
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectedError:  "Failed to retrieve market data summary",
+		},
+		{
+			name: "GetTopPerformers_UseCaseError",
+			setupMock: func(mockLogger *mocks.MockLogger) {
+				mockLogger.On("Error", "Failed to get top performers", "limit", 10, "period", "1d", "error", mock.Anything).Return()
+			},
+			createRequest: func() *http.Request {
+				return httptest.NewRequest("GET", "/market-data/top-performers?period=1d", nil)
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectedError:  "Failed to retrieve top performers",
+		},
+		{
+			name: "GetWorstPerformers_UseCaseError",
+			setupMock: func(mockLogger *mocks.MockLogger) {
+				mockLogger.On("Error", "Failed to get worst performers", "limit", 10, "period", "1d", "error", mock.Anything).Return()
+			},
+			createRequest: func() *http.Request {
+				return httptest.NewRequest("GET", "/market-data/worst-performers?period=1d", nil)
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectedError:  "Failed to retrieve worst performers",
+		},
+		{
+			name: "GetMarketDataByTicker_UseCaseError",
+			setupMock: func(mockLogger *mocks.MockLogger) {
+				mockLogger.On("Error", "Failed to get market data by ticker", "ticker", "AAPL", "error", mock.Anything).Return()
+			},
+			createRequest: func() *http.Request {
+				req := httptest.NewRequest("GET", "/market-data/ticker/AAPL", nil)
+				chiCtx := chi.NewRouteContext()
+				chiCtx.URLParams.Add("ticker", "AAPL")
+				return req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectedError:  "Failed to retrieve market data",
+		},
+		{
+			name: "GetLatestMarketData_UseCaseError",
+			setupMock: func(mockLogger *mocks.MockLogger) {
+				mockLogger.On("Error", "Failed to get latest market data", "ticker", "AAPL", "error", mock.Anything).Return()
+			},
+			createRequest: func() *http.Request {
+				req := httptest.NewRequest("GET", "/market-data/latest/AAPL", nil)
+				chiCtx := chi.NewRouteContext()
+				chiCtx.URLParams.Add("ticker", "AAPL")
+				return req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
+			},
+			expectedStatus: http.StatusInternalServerError,
+			expectedError:  "Failed to retrieve latest market data",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			mockLogger := &mocks.MockLogger{}
+			realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+			handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+			tt.setupMock(mockLogger)
+
+			req := tt.createRequest()
+			w := httptest.NewRecorder()
+
+			// Act
+			handler.GetMarketDataAnalysis(w, req)
+
+			// Assert
+			assert.Equal(t, tt.expectedStatus, w.Code)
+
+			var response map[string]string
+			err := json.NewDecoder(w.Body).Decode(&response)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedError, response["error"])
+
+			mockLogger.AssertExpectations(t)
+		})
+	}
+}
+
+// Test edge cases
+func TestMarketDataHandler_EdgeCases(t *testing.T) {
+	tests := []struct {
+		name           string
+		setupMock      func(*mocks.MockLogger)
+		createRequest  func() *http.Request
+		expectedStatus int
+		expectedError  string
+	}{
+		{
+			name: "GetTopPerformers_InvalidLimit",
+			setupMock: func(mockLogger *mocks.MockLogger) {
+				// No specific mock needed for this test
+			},
+			createRequest: func() *http.Request {
+				return httptest.NewRequest("GET", "/market-data/top-performers?limit=-5&period=1d", nil)
+			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "GetMarketDataTrend_EmptyPeriod",
+			setupMock: func(mockLogger *mocks.MockLogger) {
+				// No specific mock needed for this test
+			},
+			createRequest: func() *http.Request {
+				req := httptest.NewRequest("GET", "/market-data/trend/AAPL", nil)
+				chiCtx := chi.NewRouteContext()
+				chiCtx.URLParams.Add("ticker", "AAPL")
+				return req.WithContext(context.WithValue(req.Context(), chi.RouteCtxKey, chiCtx))
+			},
+			expectedStatus: http.StatusOK,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Arrange
+			mockLogger := &mocks.MockLogger{}
+			realUseCase := &marketDataUsecases.MarketDataAnalysisUseCase{}
+			handler := handlers.NewMarketDataHandler(*realUseCase, mockLogger)
+
+			tt.setupMock(mockLogger)
+
+			req := tt.createRequest()
+			w := httptest.NewRecorder()
+
+			// Act
+			handler.GetMarketDataAnalysis(w, req)
+
+			// Assert
+			assert.Equal(t, tt.expectedStatus, w.Code)
+		})
+	}
+}

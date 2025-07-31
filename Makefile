@@ -8,14 +8,16 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage:\n  make \033[36m<target>\033[0m\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  \033[36m%-15s\033[0m %s\n", $$1, $$2 } /^##@/ { printf "\n\033[1m%s\033[0m\n", substr($$0, 5) } ' $(MAKEFILE_LIST)
 
 ##@ Development
-setup: ## Initial project setup with CockroachDB Cloud
+api-setup: ## Initial project setup with CockroachDB Cloud
 	@echo "🚀 Setting up development environment with CockroachDB Cloud..."
-	@if [ ! -f .env ]; then \
+	cd api && \
+	if [ ! -f .env ]; then \
 		echo "❌ .env file not found. Please create it with your DATABASE_URL"; \
 		echo "Example: DATABASE_URL=postgresql://jeyseb:<password>@hiring-test-stock-cluster-13493.j77.aws-us-east-1.cockroachlabs.cloud:26257/stockdb?sslmode=verify-full&sslrootcert=certs/cc-ca.crt"; \
 		exit 1; \
 	fi
-	@if [ ! -f certs/cc-ca.crt ]; then \
+	cd api && \
+	if [ ! -f certs/cc-ca.crt ]; then \
 		echo "📥 Downloading CockroachDB Cloud SSL certificate..."; \
 		mkdir -p certs; \
 		curl -o certs/cc-ca.crt https://cockroachlabs.cloud/clusters/hiring-test-stock-cluster-13493/cert; \
@@ -40,7 +42,8 @@ dev-logs: ## Follow development logs
 ##@ Database
 migrate-up: ## Run database migrations up
 	@echo "Running migrations up on CockroachDB Cloud..."
-	@if [ ! -f .env ]; then \
+	cd api && \
+	if [ ! -f .env ]; then \
 		echo "❌ .env file not found"; \
 		exit 1; \
 	fi
@@ -48,7 +51,8 @@ migrate-up: ## Run database migrations up
 
 migrate-down: ## Run database migrations down
 	@echo "Running migrations down on CockroachDB Cloud..."
-	@if [ ! -f .env ]; then \
+	cd api && \
+	if [ ! -f .env ]; then \
 		echo "❌ .env file not found"; \
 		exit 1; \
 	fi
@@ -60,7 +64,8 @@ migrate-reset: ## Reset database (down then up)
 
 migrate-status: ## Show current migration status
 	@echo "🔍 Checking migration status..."
-	@if [ ! -f .env ]; then \
+	cd api && \
+	if [ ! -f .env ]; then \
 		echo "❌ .env file not found"; \
 		exit 1; \
 	fi
@@ -74,35 +79,12 @@ migrate-specific: ## Run specific migration (usage: make migrate-specific MIGRAT
 		exit 1; \
 	fi
 	@echo "🔧 Running migration $(MIGRATION) with direction $(or $(DIRECTION),reset)..."
-	@if [ ! -f .env ]; then \
+	cd api && \
+	if [ ! -f .env ]; then \
 		echo "❌ .env file not found"; \
 		exit 1; \
 	fi
 	go run cmd/migrator/main.go -migration=$(MIGRATION) -direction=$(or $(DIRECTION),reset)
-
-migrate-004-reset: ## Reset migration 004 specifically (down then up)
-	@echo "🔄 Resetting migration 004 (chat management tables)..."
-	@if [ ! -f .env ]; then \
-		echo "❌ .env file not found"; \
-		exit 1; \
-	fi
-	go run cmd/migrator/main.go -migration=004 -direction=reset
-
-migrate-004-down: ## Run migration 004 down only
-	@echo "⬇️  Running migration 004 DOWN (chat management tables)..."
-	@if [ ! -f .env ]; then \
-		echo "❌ .env file not found"; \
-		exit 1; \
-	fi
-	go run cmd/migrator/main.go -migration=004 -direction=down
-
-migrate-004-up: ## Run migration 004 up only
-	@echo "⬆️  Running migration 004 UP (chat management tables)..."
-	@if [ ! -f .env ]; then \
-		echo "❌ .env file not found"; \
-		exit 1; \
-	fi
-	go run cmd/migrator/main.go -migration=004 -direction=up
 
 db-reset: ## ⚠️ DANGER: Complete database reset - drops ALL tables and runs migrations fresh
 	@echo "🚨 COMPLETE DATABASE RESET - This will destroy ALL data!"
@@ -111,7 +93,8 @@ db-reset: ## ⚠️ DANGER: Complete database reset - drops ALL tables and runs 
 	./scripts/reset_and_migrate.sh
 
 db-shell: ## Access CockroachDB Cloud shell
-	@if [ ! -f .env ]; then \
+	cd api && \
+	if [ ! -f .env ]; then \
 		echo "❌ .env file not found"; \
 		exit 1; \
 	fi
@@ -119,7 +102,8 @@ db-shell: ## Access CockroachDB Cloud shell
 
 db-test-connection: ## Test CockroachDB Cloud connection
 	@echo "🔍 Testing CockroachDB Cloud connection..."
-	@if [ ! -f .env ]; then \
+	cd api && \
+	if [ ! -f .env ]; then \
 		echo "❌ .env file not found"; \
 		exit 1; \
 	fi
@@ -128,64 +112,106 @@ db-test-connection: ## Test CockroachDB Cloud connection
 
 ##@ Backend
 backend-deps: ## Install backend dependencies
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	go mod tidy && go mod download
 
 backend-run: ## Run backend locally
+	cd api && \
 	go run cmd/api/main.go
 
 backend-build: ## Build backend binary
-	mkdir -p bin
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi && \
+	mkdir -p bin && \
 	go build -o bin/api cmd/api/main.go
 
 backend-test: ## Run backend tests
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	@echo "🧪 Running complete test suite..."
 	./scripts/run-tests.sh
-
-backend-test-coverage: ## Run backend tests with coverage
-	go test -race -coverprofile=coverage.out ./...
-	go tool cover -html=coverage.out -o coverage.html
 
 backend-lint: ## Lint backend code
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	golangci-lint run
 
-##@ Testing
-test: ## Run all tests with coverage
-	@echo "🧪 Running complete test suite..."
-	./scripts/run-tests.sh
-
-test-unit: ## Run unit tests only
+backend-test-unit: ## Run unit tests only
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	@echo "📦 Running unit tests..."
 	go test -v -race ./tests/unit/...
 
-test-api: ## Run API tests (auth, handlers, endpoints)
+backend-test-api: ## Run API tests (auth, handlers, endpoints)
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	@echo "🌐 Running API tests..."
 	go test -v -race ./tests/unit/handlers/...
 	@echo "🔐 Running auth service tests..."
 	go test -v -race ./tests/unit/auth/...
 
-test-integration: ## Run integration tests
+backend-test-integration: ## Run integration tests
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	@echo "🔗 Running integration tests..."
 	go test -v -race ./tests/integration/...
 
-test-usecases: ## Run use case tests
+backend-test-usecases: ## Run use case tests
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	@echo "⚙️ Running use case tests..."
 	go test -v -race ./tests/unit/usecases/...
 
-test-coverage: ## Generate detailed coverage report
+backend-test-coverage: ## Generate detailed coverage report
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	@echo "📊 Generating coverage report..."
 	go test -race -coverprofile=coverage/coverage.out ./...
 	go tool cover -html=coverage/coverage.out -o coverage/coverage.html
 	@coverage=$$(go tool cover -func=coverage/coverage.out | tail -1 | awk '{print $$3}'); \
 	echo "📈 Total Coverage: $$coverage"
 
-test-coverage-html: ## Generate and open HTML coverage report
-	make test-coverage
+backend-test-coverage-html: ## Generate and open HTML coverage report
+	make backend-test-coverage
 	@echo "🌐 Opening coverage report..."
 	@command -v xdg-open >/dev/null 2>&1 && xdg-open coverage/coverage.html || \
 	command -v open >/dev/null 2>&1 && open coverage/coverage.html || \
 	echo "📄 Coverage report: coverage/coverage.html"
 
-test-security: ## Run security tests
+backend-test-security: ## Run security tests
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	@echo "🔒 Running security tests..."
 	@if command -v gosec >/dev/null 2>&1; then \
 		gosec ./...; \
@@ -193,29 +219,59 @@ test-security: ## Run security tests
 		echo "❌ gosec not installed. Install with: go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest"; \
 	fi
 
-test-clean: ## Clean test artifacts
+backend-test-clean: ## Clean test artifacts
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	@echo "🧹 Cleaning test artifacts..."
 	rm -rf coverage/
 	rm -f *.out *.html
 
-test-quick: ## Run quick tests (no race detection, no coverage)
+backend-test-quick: ## Run quick tests (no race detection, no coverage)
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	@echo "⚡ Running quick tests..."
 	go test -short ./tests/unit/...
 
 ##@ API Testing
 api-test-auth: ## Test authentication endpoints specifically
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	@echo "🔐 Testing authentication endpoints..."
 	go test -v -run "TestAuth" ./tests/unit/handlers/...
 
 api-test-subscription: ## Test subscription endpoints
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	@echo "💳 Testing subscription endpoints..."
 	go test -v -run "TestSubscription" ./tests/unit/handlers/...
 
 api-test-stocks: ## Test stock endpoints
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	@echo "📈 Testing stock endpoints..."
 	go test -v -run "TestStock" ./tests/unit/handlers/...
 
 api-validate: ## Validate all API endpoints are working
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi
 	@echo "🌐 Validating API endpoints..."
 	@if ! pgrep -f "cmd/api/main.go" > /dev/null; then \
 		echo "⚠️  API server not running. Starting in background..."; \
@@ -235,11 +291,11 @@ api-validate: ## Validate all API endpoints are working
 frontend-deps: ## Install frontend dependencies
 	cd webui && npm install
 
-frontend-dev: ## Run frontend development server
-	cd webui && npm run dev
-
 frontend-build: ## Build frontend for production
 	cd webui && npm run build
+
+frontend-dev: ## Run frontend development server
+	cd webui && npm run dev
 
 frontend-test: ## Run frontend tests
 	cd webui && npm run test
