@@ -64,7 +64,10 @@ run_tests_with_coverage() {
     echo -e "${BLUE}📋 Running $description...${NC}"
     echo "==================="
     
-    if go test -v -race -coverprofile="$coverage_file" $test_pattern; then
+    # Change to api directory before running tests
+    cd api
+    if go test -v -race -coverprofile="../$coverage_file" $test_pattern; then
+        cd ..
         echo -e "${GREEN}✅ $description passed${NC}"
         
         # Calculate coverage if file exists and has content
@@ -82,6 +85,7 @@ run_tests_with_coverage() {
             echo -e "${YELLOW}📊 Coverage: 0.0% (using mocks - this is normal for unit tests)${NC}"
         fi
     else
+        cd ..
         echo -e "${RED}❌ $description failed${NC}"
         return 1
     fi
@@ -152,16 +156,19 @@ if [[ "$INTEGRATION_TESTS" == "true" ]]; then
     echo "======================"
     echo ""
     
-    run_tests_with_coverage "./tests/integration/..." "$COVERAGE_DIR/integration_coverage.out" "Integration Tests"
+    run_tests_with_coverage "tests/integration/..." "$COVERAGE_DIR/integration_coverage.out" "Integration Tests"
 fi
 
 # Run linter (if enabled)
 if [[ "$RUN_LINTER" == "true" ]]; then
     echo -e "${BLUE}🔍 Running linter...${NC}"
     if command -v golangci-lint &> /dev/null; then
+        cd api
         if golangci-lint run --timeout=5m; then
+            cd ..
             echo -e "${GREEN}✅ Linter passed${NC}"
         else
+            cd ..
             echo -e "${YELLOW}⚠️  Linter found issues${NC}"
         fi
     else

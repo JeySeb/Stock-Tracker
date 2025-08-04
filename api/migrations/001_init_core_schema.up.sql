@@ -28,9 +28,7 @@ CREATE TABLE IF NOT EXISTS stocks (
   rating_to    STRING,
   target_from  DECIMAL(10,2),
   target_to    DECIMAL(10,2),
-  brokerage    STRING,
   event_time   TIMESTAMPTZ NOT NULL,
-  price_close  DECIMAL(10,2) CHECK (price_close IS NULL OR price_close >= 0),
   created_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at   TIMESTAMPTZ NOT NULL DEFAULT now() ON UPDATE now(),
   CONSTRAINT   uc_ticker_event UNIQUE (ticker,event_time)
@@ -39,8 +37,8 @@ CREATE TABLE IF NOT EXISTS stocks (
 CREATE INDEX IF NOT EXISTS idx_stocks__ticker            ON stocks (ticker);
 CREATE INDEX IF NOT EXISTS idx_stocks__event_time_desc   ON stocks (event_time DESC);
 CREATE INDEX IF NOT EXISTS idx_stocks__ticker_time_desc  ON stocks (ticker,event_time DESC);
-CREATE INDEX IF NOT EXISTS idx_stocks__brokerage_time    ON stocks (brokerage,event_time DESC)
-  WHERE brokerage IS NOT NULL;
+CREATE INDEX IF NOT EXISTS idx_stocks__broker_id_time    ON stocks (broker_id,event_time DESC)
+  WHERE broker_id IS NOT NULL;
 
 -- ---------- INGESTION LOGS ----------
 CREATE TABLE IF NOT EXISTS ingestion_logs (

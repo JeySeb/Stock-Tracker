@@ -51,7 +51,11 @@ func main() {
 		log.Error("Failed to initialize database", "error", err)
 		panic(err)
 	}
-	defer dbPool.Close()
+	defer func() {
+		if err := dbPool.Close(); err != nil {
+			log.Error("Failed to close database connection", "error", err)
+		}
+	}()
 
 	// Initialize repositories
 	stockRepo := database.NewStockRepository(dbPool.GetPool(), log)
@@ -81,6 +85,7 @@ func main() {
 
 	// Initialize use cases
 	stockQueryUC := stockUsecases.NewStockQueryUseCase(stockRepo, brokerRepo, log)
+	brokerQueryUC := stockUsecases.NewBrokerQueryUseCase(stockRepo, brokerRepo, log)
 	userUC := authUsecases.NewUserUseCase(userRepo, subscriptionRepo, sessionRepo, jwtService, log)
 	recommendationUC := recommendationUsecases.NewTieredRecommendationUseCase(stockRepo, basicCalculator, externalEnricher, cache, log)
 	// subscriptionUC := usecases.NewSubscriptionUseCase(subscriptionRepo, userRepo, log) // TODO: Use when subscription handler is implemented
@@ -95,12 +100,13 @@ func main() {
 
 	// Initialize handlers
 	stockHandler := handlers.NewStockHandler(stockQueryUC, log)
+	brokerHandler := handlers.NewBrokerHandler(brokerQueryUC, log)
 	authHandler := handlers.NewAuthHandler(userUC, log)
 	recommendationHandler := handlers.NewRecommendationHandler(recommendationUC, log)
 	subscriptionHandler := handlers.NewSubscriptionHandler(subscriptionUC, log)
 	marketDataHandler := handlers.NewMarketDataHandler(marketDataUC, log)
 	// Initialize router
-	r := setupRouter(stockHandler, authHandler, recommendationHandler, subscriptionHandler, marketDataHandler, authMiddleware, rateLimiter, log, dbPool)
+	r := setupRouter(stockHandler, brokerHandler, authHandler, recommendationHandler, subscriptionHandler, marketDataHandler, authMiddleware, rateLimiter, log, dbPool)
 
 	// Configure server
 	server := &http.Server{
@@ -158,6 +164,7 @@ func corsMiddleware(next http.Handler) http.Handler {
 
 func setupRouter(
 	stockHandler *handlers.StockHandler,
+	brokerHandler *handlers.BrokerHandler,
 	authHandler *handlers.AuthHandler,
 	recommendationHandler *handlers.RecommendationHandler,
 	subscriptionHandler *handlers.SubscriptionHandler,
@@ -192,13 +199,17 @@ func setupRouter(
 
 		if err := dbPool.GetPool().Ping(ctx); err != nil {
 			w.WriteHeader(http.StatusServiceUnavailable)
-			w.Write([]byte(`{"status":"unhealthy","database":"disconnected"}`))
+			if _, writeErr := w.Write([]byte(`{"status":"unhealthy","database":"disconnected"}`)); writeErr != nil {
+				log.Error("Failed to write health check response", "error", writeErr)
+			}
 			return
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"healthy","database":"connected","timestamp":"` + time.Now().Format(time.RFC3339) + `"}`))
+		if _, writeErr := w.Write([]byte(`{"status":"healthy","database":"connected","timestamp":"` + time.Now().Format(time.RFC3339) + `"}`)); writeErr != nil {
+			log.Error("Failed to write health check response", "error", writeErr)
+		}
 	})
 
 	// API routes
@@ -217,6 +228,7 @@ func setupRouter(
 				r.Use(authMiddleware.OptionalAuth) // Guest users can access with limitations
 				r.Use(rateLimiter.RateLimit)       // Tier-based rate limiting
 				r.Get("/", stockHandler.GetStocks)
+				r.Get("/enhanced", stockHandler.GetStocksWithEnhancedFilters)
 				r.Get("/{id}", stockHandler.GetStockByID)
 				r.Get("/{ticker}", stockHandler.GetStockByTicker)
 				r.Get("/stats", stockHandler.GetStats)
@@ -228,6 +240,13 @@ func setupRouter(
 					r.Put("/{id}", stockHandler.UpdateStock)
 					r.Delete("/{id}", stockHandler.DeleteStock)
 				})
+			})
+
+			// Broker routes with optional authentication
+			r.Route("/brokers", func(r chi.Router) {
+				r.Use(authMiddleware.OptionalAuth) // Guest users can access with limitations
+				r.Use(rateLimiter.RateLimit)       // Tier-based rate limiting
+				r.Get("/scores", brokerHandler.GetBrokersWithScores)
 			})
 
 			// Protected user routes

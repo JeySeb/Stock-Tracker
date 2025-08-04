@@ -162,10 +162,10 @@ func testFiltering(t *testing.T, suite *IntegrationTestSuite) {
 		useAuth        bool
 	}{
 		{
-			name:          "High score filter",
-			userTier:      enums.TIER_BASIC,
-			minScore:      &[]float64{0.7}[0],
-			useAuth:       true,
+			name:     "High score filter",
+			userTier: enums.TIER_BASIC,
+			minScore: &[]float64{0.7}[0],
+			useAuth:  true,
 		},
 		{
 			name:           "Exclude tickers",
@@ -273,10 +273,11 @@ func testSingleTickerRecommendation(t *testing.T, suite *IntegrationTestSuite) {
 			assert.LessOrEqual(t, response.Confidence, 1.0)
 
 			// Verify tier-specific data
-			if tc.userTier == enums.TIER_PREMIUM {
-				// Premium users might have external data (if available)
-				// Note: In test environment, external APIs might not be available
-			}
+			//if tc.userTier == enums.TIER_PREMIUM {
+			// Premium users might have external data (if available)
+			// Note: In test environment, external APIs might not be available
+			// This is intentionally empty as external data is not available in tests
+			//}
 		})
 	}
 }

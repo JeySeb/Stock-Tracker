@@ -121,8 +121,7 @@ func (c *stockAPIClient) FetchPage(ctx context.Context, nextPage string) ([]*sto
 
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			// Log the error but don't change the main return value
-			// Note: This is acceptable as it's a cleanup operation
+			c.logger.Warn("Failed to close response body", "error", err)
 		}
 	}()
 

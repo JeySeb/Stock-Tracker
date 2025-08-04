@@ -79,3 +79,23 @@ func (uc *StockQueryUseCase) GetStats(ctx context.Context) (interface{}, error) 
 	uc.logger.Info("Successfully retrieved statistics", "total_stocks", pagination.TotalItems)
 	return stats, nil
 }
+
+// GetStocksWithEnhancedFilters returns stocks with enhanced filtering capabilities
+func (uc *StockQueryUseCase) GetStocksWithEnhancedFilters(ctx context.Context, filters stockValidation.EnhancedStockFilters) (interface{}, *stockValidation.Pagination, error) {
+	uc.logger.Info("Getting stocks with enhanced filters", "filters", filters)
+
+	// Validate filters
+	if err := filters.Validate(); err != nil {
+		uc.logger.Error("Invalid enhanced filters", "error", err)
+		return nil, nil, fmt.Errorf("invalid filters: %w", err)
+	}
+
+	stocks, pagination, err := uc.stockRepo.GetAllWithEnhancedFilters(ctx, filters)
+	if err != nil {
+		uc.logger.Error("Failed to get stocks from repository with enhanced filters", "error", err)
+		return nil, nil, fmt.Errorf("failed to retrieve stocks: %w", err)
+	}
+
+	uc.logger.Info("Successfully retrieved stocks with enhanced filters", "count", len(stocks), "total", pagination.TotalItems)
+	return stocks, pagination, nil
+}

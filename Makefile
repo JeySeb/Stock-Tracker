@@ -91,14 +91,13 @@ db-reset: ## ⚠️ DANGER: Complete database reset - drops ALL tables and runs 
 	@echo "Are you sure? This action cannot be undone."
 	@read -p "Type 'RESET' to confirm: " confirm && [ "$$confirm" = "RESET" ]
 	./scripts/reset_and_migrate.sh
-
 db-shell: ## Access CockroachDB Cloud shell
 	cd api && \
 	if [ ! -f .env ]; then \
 		echo "❌ .env file not found"; \
 		exit 1; \
 	fi
-	@export $$(grep -v '^#' .env | xargs) && psql "$$DATABASE_URL"
+	export $$(grep -v '^#' .env | xargs) && psql "$$DATABASE_URL" || (echo "❌ Connection failed" && exit 1)
 
 db-test-connection: ## Test CockroachDB Cloud connection
 	@echo "🔍 Testing CockroachDB Cloud connection..."
@@ -107,7 +106,7 @@ db-test-connection: ## Test CockroachDB Cloud connection
 		echo "❌ .env file not found"; \
 		exit 1; \
 	fi
-	@export $$(grep -v '^#' .env | xargs) && psql "$$DATABASE_URL" -c "SELECT version();" || (echo "❌ Connection failed" && exit 1)
+	export $$(grep -v '^#' .env | xargs) && psql "$$DATABASE_URL" -c "SELECT version();" || (echo "❌ Connection failed" && exit 1)
 	@echo "✅ Connection successful!"
 
 ##@ Backend
@@ -139,7 +138,7 @@ backend-test: ## Run backend tests
 		exit 1; \
 	fi
 	@echo "🧪 Running complete test suite..."
-	./scripts/run-tests.sh
+	bash ./scripts/run-tests.sh
 
 backend-lint: ## Lint backend code
 	cd api && \
@@ -296,8 +295,7 @@ frontend-build: ## Build frontend for production
 
 frontend-dev: ## Run frontend development server
 	cd webui && npm run dev
-
-frontend-test: ## Run frontend tests
+# Run frontend tests
 	cd webui && npm run test
 
 frontend-lint: ## Lint frontend code

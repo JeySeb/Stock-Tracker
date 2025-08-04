@@ -20,7 +20,6 @@ type Stock struct {
 	TargetFrom float64   `json:"target_from" db:"target_from"`
 	TargetTo   float64   `json:"target_to" db:"target_to"`
 	EventTime  time.Time `json:"event_time" db:"event_time"`
-	PriceClose *float64  `json:"price_close,omitempty" db:"price_close"`
 	CreatedAt  time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt  time.Time `json:"updated_at" db:"updated_at"`
 }
@@ -79,13 +78,6 @@ func (s *Stock) GetRatingScore() (fromScore, toScore float64) {
 	toScore = ratingScores[strings.ToLower(s.RatingTo)]
 
 	return
-}
-
-func (s *Stock) GetPriceChange() float64 {
-	if s.PriceClose == nil {
-		return 0
-	}
-	return *s.PriceClose
 }
 
 // GetRatingChangeScore calculates the improvement/degradation of rating

@@ -8,8 +8,8 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	stockModel "stock-tracker/internal/domain/stocks/model"
-	stockValidation "stock-tracker/internal/domain/stocks/validation"
 	stockRepos "stock-tracker/internal/domain/stocks/repositories"
+	stockValidation "stock-tracker/internal/domain/stocks/validation"
 )
 
 // MockStockRepository implements repositories.StockRepository for testing
@@ -48,6 +48,11 @@ func (m *MockStockRepository) GetLatestByTicker(ctx context.Context, ticker stri
 }
 
 func (m *MockStockRepository) GetAll(ctx context.Context, filters stockValidation.StockFilters) ([]*stockModel.Stock, *stockValidation.Pagination, error) {
+	args := m.Called(ctx, filters)
+	return args.Get(0).([]*stockModel.Stock), args.Get(1).(*stockValidation.Pagination), args.Error(2)
+}
+
+func (m *MockStockRepository) GetAllWithEnhancedFilters(ctx context.Context, filters stockValidation.EnhancedStockFilters) ([]*stockModel.Stock, *stockValidation.Pagination, error) {
 	args := m.Called(ctx, filters)
 	return args.Get(0).([]*stockModel.Stock), args.Get(1).(*stockValidation.Pagination), args.Error(2)
 }
@@ -120,4 +125,12 @@ func (m *MockBrokerRepository) Delete(ctx context.Context, id uuid.UUID) error {
 func (m *MockBrokerRepository) UpsertByName(ctx context.Context, broker *stockModel.Broker) error {
 	args := m.Called(ctx, broker)
 	return args.Error(0)
+}
+
+func (m *MockBrokerRepository) GetBrokersWithScores(ctx context.Context, limit *int, orderBy string) ([]*stockRepos.BrokerWithScore, error) {
+	args := m.Called(ctx, limit, orderBy)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*stockRepos.BrokerWithScore), args.Error(1)
 }

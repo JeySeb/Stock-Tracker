@@ -28,6 +28,11 @@ func (m *mockStockUseCase) GetStocks(ctx context.Context, filters stockValidatio
 	return args.Get(0), args.Get(1).(*stockValidation.Pagination), args.Error(2)
 }
 
+func (m *mockStockUseCase) GetStocksWithEnhancedFilters(ctx context.Context, filters stockValidation.EnhancedStockFilters) (interface{}, *stockValidation.Pagination, error) {
+	args := m.Called(ctx, filters)
+	return args.Get(0), args.Get(1).(*stockValidation.Pagination), args.Error(2)
+}
+
 func (m *mockStockUseCase) GetStocksByTicker(ctx context.Context, ticker string) (interface{}, error) {
 	args := m.Called(ctx, ticker)
 	if args.Get(0) == nil {

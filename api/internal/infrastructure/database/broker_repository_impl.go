@@ -151,3 +151,60 @@ func (r *BrokerRepositoryImpl) UpsertByName(ctx context.Context, broker *stockMo
 
 	return nil
 }
+
+// GetBrokersWithScores returns brokers with their calculated scores and report counts
+func (r *BrokerRepositoryImpl) GetBrokersWithScores(ctx context.Context, limit *int, orderBy string) ([]*stockRepos.BrokerWithScore, error) {
+	// Build the query with proper ordering
+	query := `
+		SELECT 
+			b.id, 
+			b.name, 
+			b.credibility_score,
+			COALESCE(COUNT(s.id), 0) as report_count,
+			b.created_at::text,
+			b.updated_at::text
+		FROM brokers b
+		LEFT JOIN stocks s ON b.id = s.broker_id
+		GROUP BY b.id, b.name, b.credibility_score, b.created_at, b.updated_at
+	`
+
+	// Add ordering
+	switch orderBy {
+	case "asc":
+		query += " ORDER BY b.credibility_score ASC, report_count ASC"
+	case "desc":
+		query += " ORDER BY b.credibility_score DESC, report_count DESC"
+	default:
+		query += " ORDER BY b.credibility_score DESC, report_count DESC"
+	}
+
+	// Add limit if specified
+	if limit != nil {
+		query += fmt.Sprintf(" LIMIT %d", *limit)
+	}
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get brokers with scores: %w", err)
+	}
+	defer rows.Close()
+
+	var brokers []*stockRepos.BrokerWithScore
+	for rows.Next() {
+		broker := &stockRepos.BrokerWithScore{}
+		err := rows.Scan(
+			&broker.ID,
+			&broker.Name,
+			&broker.CredibilityScore,
+			&broker.ReportCount,
+			&broker.CreatedAt,
+			&broker.UpdatedAt,
+		)
+		if err != nil {
+			continue
+		}
+		brokers = append(brokers, broker)
+	}
+
+	return brokers, nil
+}

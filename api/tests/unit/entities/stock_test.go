@@ -301,35 +301,6 @@ func TestStock_IsRecommendation(t *testing.T) {
 	}
 }
 
-func TestStock_GetPriceChange(t *testing.T) {
-	testCases := []struct {
-		name       string
-		priceClose *float64
-		expected   float64
-	}{
-		{
-			name:       "With price close",
-			priceClose: func() *float64 { p := 150.50; return &p }(),
-			expected:   150.50,
-		},
-		{
-			name:       "No price close",
-			priceClose: nil,
-			expected:   0.0,
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			stock := &stockModel.Stock{
-				PriceClose: tc.priceClose,
-			}
-			result := stock.GetPriceChange()
-			assert.Equal(t, tc.expected, result)
-		})
-	}
-}
-
 func TestStock_Validate(t *testing.T) {
 	// Test valid stock
 	validStock := stockModel.NewStock("AAPL", "Apple Inc.", "Goldman Sachs", "upgraded by", time.Now())

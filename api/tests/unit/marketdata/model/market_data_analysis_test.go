@@ -98,11 +98,12 @@ func TestMarketDataAnalysis_DetermineTrendDirection(t *testing.T) {
 			}
 			analysis.CalculateDerivedFields()
 			// Note: determineTrendDirection is unexported, so we'll test the public IsBullish/IsBearish methods instead
-			if tt.expectedTrend == "bullish" {
+			switch tt.expectedTrend {
+			case "bullish":
 				assert.True(t, analysis.IsBullish())
-			} else if tt.expectedTrend == "bearish" {
+			case "bearish":
 				assert.True(t, analysis.IsBearish())
-			} else {
+			default:
 				assert.False(t, analysis.IsBullish())
 				assert.False(t, analysis.IsBearish())
 			}
@@ -131,11 +132,12 @@ func TestMarketDataAnalysis_DetermineRiskLevel(t *testing.T) {
 				PricePosition:    tt.pricePosition,
 			}
 			analysis.CalculateDerivedFields()
-			if tt.expectedRisk == "high" {
+			switch tt.expectedRisk {
+			case "high":
 				assert.True(t, analysis.IsHighRisk())
-			} else if tt.expectedRisk == "medium" {
+			case "medium":
 				assert.Equal(t, "medium", analysis.RiskLevel)
-			} else {
+			default:
 				assert.False(t, analysis.IsHighRisk())
 			}
 		})

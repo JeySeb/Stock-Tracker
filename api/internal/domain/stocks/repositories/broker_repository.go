@@ -15,4 +15,18 @@ type BrokerRepository interface {
 	Update(ctx context.Context, broker *stockModel.Broker) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	UpsertByName(ctx context.Context, broker *stockModel.Broker) error
+
+	// New methods for broker scoring endpoints
+	GetBrokersWithScores(ctx context.Context, limit *int, orderBy string) ([]*BrokerWithScore, error)
+}
+
+// BrokerWithScore represents a broker with its calculated score
+type BrokerWithScore struct {
+	ID               uuid.UUID `json:"id" db:"id"`
+	Name             string    `json:"name" db:"name"`
+	CredibilityScore float64   `json:"credibility_score" db:"credibility_score"`
+	ReportCount      int       `json:"report_count" db:"report_count"`
+	CalculatedScore  float64   `json:"calculated_score" db:"calculated_score"`
+	CreatedAt        string    `json:"created_at" db:"created_at"`
+	UpdatedAt        string    `json:"updated_at" db:"updated_at"`
 }
