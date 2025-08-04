@@ -20,6 +20,7 @@ type StockRepository interface {
 	GetByTicker(ctx context.Context, ticker string) ([]*stockModel.Stock, error)
 	GetLatestByTicker(ctx context.Context, ticker string) (*stockModel.Stock, error)
 	GetAll(ctx context.Context, filters stockValidation.StockFilters) ([]*stockModel.Stock, *stockValidation.Pagination, error)
+	GetAllWithEnhancedFilters(ctx context.Context, filters stockValidation.EnhancedStockFilters) ([]*stockModel.Stock, *stockValidation.Pagination, error)
 	GetRecentByTickers(ctx context.Context, since time.Time) (map[string][]*stockModel.Stock, error)
 
 	//Batch operations

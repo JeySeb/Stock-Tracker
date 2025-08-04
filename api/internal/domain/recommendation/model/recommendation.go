@@ -59,13 +59,13 @@ func getExpirationByTier(tier enums.RecommendationTier) time.Duration {
 
 func (r *Recommendation) DetermineType() {
 	switch {
-	case r.Score >= 0.8:
+	case r.Score >= 0.75:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_STRONG_BUY
-	case r.Score >= 0.6:
+	case r.Score >= 0.55:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_BUY
-	case r.Score >= 0.4:
+	case r.Score >= 0.35:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_HOLD
-	case r.Score >= 0.2:
+	case r.Score >= 0.15:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_SELL
 	default:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_STRONG_SELL

@@ -34,14 +34,14 @@ func NewStockRepository(db *pgxpool.Pool, logger logger.Logger) stockRepos.Stock
 func (r *stockRepository) Create(ctx context.Context, stock *stockModel.Stock) error {
 	query := `
         INSERT INTO stocks (id, ticker, company, broker_id, action, rating_from, rating_to, 
-                           target_from, target_to, event_time, price_close, created_at, updated_at)
+                           target_from, target_to, event_time, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
     `
 
 	_, err := r.db.Exec(ctx, query,
 		stock.ID, stock.Ticker, stock.Company, stock.BrokerID, stock.Action,
 		stock.RatingFrom, stock.RatingTo, stock.TargetFrom, stock.TargetTo,
-		stock.EventTime, stock.PriceClose, stock.CreatedAt, stock.UpdatedAt,
+		stock.EventTime, stock.CreatedAt, stock.UpdatedAt,
 	)
 
 	if err != nil {
@@ -73,7 +73,7 @@ func (r *stockRepository) BulkCreate(ctx context.Context, stocks []*stockModel.S
 
 	query := `
         INSERT INTO stocks (id, ticker, company, broker_id, action, rating_from, rating_to, 
-                           target_from, target_to, event_time, price_close, created_at, updated_at)
+                           target_from, target_to, event_time,  created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
         ON CONFLICT (ticker, event_time) DO NOTHING
     `
@@ -82,7 +82,7 @@ func (r *stockRepository) BulkCreate(ctx context.Context, stocks []*stockModel.S
 		_, err := tx.Exec(ctx, query,
 			stock.ID, stock.Ticker, stock.Company, stock.BrokerID, stock.Action,
 			stock.RatingFrom, stock.RatingTo, stock.TargetFrom, stock.TargetTo,
-			stock.EventTime, stock.PriceClose, stock.CreatedAt, stock.UpdatedAt,
+			stock.EventTime, stock.CreatedAt, stock.UpdatedAt,
 		)
 		if err != nil {
 			r.logger.Error("Failed to insert stock in batch", "error", err, "ticker", stock.Ticker)
@@ -114,7 +114,7 @@ func (r *stockRepository) GetAll(ctx context.Context, filters stockValidation.St
 
 	query := `
         SELECT s.id, s.ticker, s.company, s.action, s.rating_from, s.rating_to,
-               s.target_from, s.target_to, s.event_time, s.price_close, s.created_at, s.updated_at,
+               s.target_from, s.target_to, s.event_time,  s.created_at, s.updated_at,
                b.id as broker_id, b.name as brokerage
         FROM stocks s
         LEFT JOIN brokers b ON s.broker_id = b.id
@@ -135,7 +135,7 @@ func (r *stockRepository) GetAll(ctx context.Context, filters stockValidation.St
 		err := rows.Scan(
 			&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
 			&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,
-			&stock.EventTime, &stock.PriceClose, &stock.CreatedAt, &stock.UpdatedAt,
+			&stock.EventTime, &stock.CreatedAt, &stock.UpdatedAt,
 			&stock.BrokerID, &stock.Brokerage,
 		)
 		if err != nil {
@@ -203,7 +203,7 @@ func (r *stockRepository) buildWhereClause(filters stockValidation.StockFilters)
 func (r *stockRepository) GetRecentByTickers(ctx context.Context, since time.Time) (map[string][]*stockModel.Stock, error) {
 	query := `
         SELECT s.id, s.ticker, s.company, s.action, s.rating_from, s.rating_to,
-               s.target_from, s.target_to, s.event_time, s.price_close, s.created_at, s.updated_at,
+               s.target_from, s.target_to, s.event_time,  s.created_at, s.updated_at,
                b.id as broker_id, b.name as brokerage
         FROM stocks s
         LEFT JOIN brokers b ON s.broker_id = b.id
@@ -224,7 +224,7 @@ func (r *stockRepository) GetRecentByTickers(ctx context.Context, since time.Tim
 		err := rows.Scan(
 			&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
 			&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,
-			&stock.EventTime, &stock.PriceClose, &stock.CreatedAt, &stock.UpdatedAt,
+			&stock.EventTime, &stock.CreatedAt, &stock.UpdatedAt,
 			&stock.BrokerID, &stock.Brokerage,
 		)
 		if err != nil {
@@ -242,7 +242,7 @@ func (r *stockRepository) GetRecentByTickers(ctx context.Context, since time.Tim
 func (r *stockRepository) GetByID(ctx context.Context, id uuid.UUID) (*stockModel.Stock, error) {
 	query := `
         SELECT s.id, s.ticker, s.company, s.action, s.rating_from, s.rating_to,
-               s.target_from, s.target_to, s.event_time, s.price_close, s.created_at, s.updated_at,
+               s.target_from, s.target_to, s.event_time,  s.created_at, s.updated_at,
                b.id as broker_id, b.name as brokerage
         FROM stocks s
         LEFT JOIN brokers b ON s.broker_id = b.id
@@ -253,7 +253,7 @@ func (r *stockRepository) GetByID(ctx context.Context, id uuid.UUID) (*stockMode
 	err := r.db.QueryRow(ctx, query, id).Scan(
 		&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
 		&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,
-		&stock.EventTime, &stock.PriceClose, &stock.CreatedAt, &stock.UpdatedAt,
+		&stock.EventTime, &stock.CreatedAt, &stock.UpdatedAt,
 		&stock.BrokerID, &stock.Brokerage,
 	)
 
@@ -270,14 +270,14 @@ func (r *stockRepository) Update(ctx context.Context, stock *stockModel.Stock) e
         UPDATE stocks 
         SET ticker = $2, company = $3, broker_id = $4, action = $5, 
             rating_from = $6, rating_to = $7, target_from = $8, target_to = $9,
-            event_time = $10, price_close = $11, updated_at = $12
+            event_time = $10, updated_at = $11
         WHERE id = $1
     `
 
 	_, err := r.db.Exec(ctx, query,
 		stock.ID, stock.Ticker, stock.Company, stock.BrokerID, stock.Action,
 		stock.RatingFrom, stock.RatingTo, stock.TargetFrom, stock.TargetTo,
-		stock.EventTime, stock.PriceClose, stock.UpdatedAt,
+		stock.EventTime, stock.UpdatedAt,
 	)
 
 	if err != nil {
@@ -305,7 +305,7 @@ func (r *stockRepository) Delete(ctx context.Context, id uuid.UUID) error {
 func (r *stockRepository) GetByTicker(ctx context.Context, ticker string) ([]*stockModel.Stock, error) {
 	query := `
         SELECT s.id, s.ticker, s.company, s.action, s.rating_from, s.rating_to,
-               s.target_from, s.target_to, s.event_time, s.price_close, s.created_at, s.updated_at,
+               s.target_from, s.target_to, s.event_time,  s.created_at, s.updated_at,
                b.id as broker_id, b.name as brokerage
         FROM stocks s
         LEFT JOIN brokers b ON s.broker_id = b.id
@@ -325,7 +325,7 @@ func (r *stockRepository) GetByTicker(ctx context.Context, ticker string) ([]*st
 		err := rows.Scan(
 			&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
 			&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,
-			&stock.EventTime, &stock.PriceClose, &stock.CreatedAt, &stock.UpdatedAt,
+			&stock.EventTime, &stock.CreatedAt, &stock.UpdatedAt,
 			&stock.BrokerID, &stock.Brokerage,
 		)
 		if err != nil {
@@ -342,7 +342,7 @@ func (r *stockRepository) GetByTicker(ctx context.Context, ticker string) ([]*st
 func (r *stockRepository) GetLatestByTicker(ctx context.Context, ticker string) (*stockModel.Stock, error) {
 	query := `
         SELECT s.id, s.ticker, s.company, s.action, s.rating_from, s.rating_to,
-               s.target_from, s.target_to, s.event_time, s.price_close, s.created_at, s.updated_at,
+               s.target_from, s.target_to, s.event_time,  s.created_at, s.updated_at,
                b.id as broker_id, b.name as brokerage
         FROM stocks s
         LEFT JOIN brokers b ON s.broker_id = b.id
@@ -355,7 +355,7 @@ func (r *stockRepository) GetLatestByTicker(ctx context.Context, ticker string) 
 	err := r.db.QueryRow(ctx, query, ticker).Scan(
 		&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
 		&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,
-		&stock.EventTime, &stock.PriceClose, &stock.CreatedAt, &stock.UpdatedAt,
+		&stock.EventTime, &stock.CreatedAt, &stock.UpdatedAt,
 		&stock.BrokerID, &stock.Brokerage,
 	)
 
@@ -388,7 +388,7 @@ func (r *stockRepository) BulkUpdate(ctx context.Context, stocks []*stockModel.S
         UPDATE stocks 
         SET ticker = $2, company = $3, broker_id = $4, action = $5, 
             rating_from = $6, rating_to = $7, target_from = $8, target_to = $9,
-            event_time = $10, price_close = $11, updated_at = $12
+            event_time = $10, updated_at = $11
         WHERE id = $1
     `
 
@@ -396,7 +396,7 @@ func (r *stockRepository) BulkUpdate(ctx context.Context, stocks []*stockModel.S
 		_, err := tx.Exec(ctx, query,
 			stock.ID, stock.Ticker, stock.Company, stock.BrokerID, stock.Action,
 			stock.RatingFrom, stock.RatingTo, stock.TargetFrom, stock.TargetTo,
-			stock.EventTime, stock.PriceClose, stock.UpdatedAt,
+			stock.EventTime, stock.UpdatedAt,
 		)
 		if err != nil {
 			r.logger.Error("Failed to update stock in batch", "error", err, "ticker", stock.Ticker)
@@ -416,7 +416,7 @@ func (r *stockRepository) BulkUpdate(ctx context.Context, stocks []*stockModel.S
 func (r *stockRepository) GetTopMoversByTarget(ctx context.Context, limit int) ([]*stockModel.Stock, error) {
 	query := `
         SELECT s.id, s.ticker, s.company, s.action, s.rating_from, s.rating_to,
-               s.target_from, s.target_to, s.event_time, s.price_close, s.created_at, s.updated_at,
+               s.target_from, s.target_to, s.event_time,  s.created_at, s.updated_at,
                b.id as broker_id, b.name as brokerage
         FROM stocks s
         LEFT JOIN brokers b ON s.broker_id = b.id
@@ -437,7 +437,7 @@ func (r *stockRepository) GetTopMoversByTarget(ctx context.Context, limit int) (
 		err := rows.Scan(
 			&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
 			&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,
-			&stock.EventTime, &stock.PriceClose, &stock.CreatedAt, &stock.UpdatedAt,
+			&stock.EventTime, &stock.CreatedAt, &stock.UpdatedAt,
 			&stock.BrokerID, &stock.Brokerage,
 		)
 		if err != nil {
@@ -497,7 +497,7 @@ func (r *stockRepository) GetBrokerageStats(ctx context.Context) ([]stockRepos.B
 func (r *stockRepository) GetRecentRecommendations(ctx context.Context, since time.Time, limit int) ([]*stockModel.Stock, error) {
 	query := `
 		SELECT s.id, s.ticker, s.company, s.action, s.rating_from, s.rating_to,
-		       s.target_from, s.target_to, s.event_time, s.price_close, s.created_at, s.updated_at,
+		       s.target_from, s.target_to, s.event_time,  s.created_at, s.updated_at,
 		       b.id as broker_id, b.name as brokerage
 		FROM stocks s
 		LEFT JOIN brokers b ON s.broker_id = b.id
@@ -519,7 +519,7 @@ func (r *stockRepository) GetRecentRecommendations(ctx context.Context, since ti
 		err := rows.Scan(
 			&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
 			&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,
-			&stock.EventTime, &stock.PriceClose, &stock.CreatedAt, &stock.UpdatedAt,
+			&stock.EventTime, &stock.CreatedAt, &stock.UpdatedAt,
 			&stock.BrokerID, &stock.Brokerage,
 		)
 		if err != nil {
@@ -530,4 +530,269 @@ func (r *stockRepository) GetRecentRecommendations(ctx context.Context, since ti
 	}
 
 	return stocks, nil
+}
+
+// GetAllWithEnhancedFilters retrieves stocks from the database based on the provided enhanced filters and returns paginated results.
+func (r *stockRepository) GetAllWithEnhancedFilters(ctx context.Context, filters stockValidation.EnhancedStockFilters) ([]*stockModel.Stock, *stockValidation.Pagination, error) {
+	filters.SetDefaults()
+
+	whereClause, args := r.buildEnhancedWhereClause(filters)
+	countQuery := "SELECT COUNT(*) FROM stocks s LEFT JOIN brokers b ON s.broker_id = b.id" + whereClause
+
+	r.logger.Info("Counting stocks with enhanced filters", "query=%s", countQuery)
+	var totalItems int
+	err := r.db.QueryRow(ctx, countQuery, args...).Scan(&totalItems)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to count stocks: %w", err)
+	}
+
+	query := `
+        SELECT s.id, s.ticker, s.company, s.action, s.rating_from, s.rating_to,
+               s.target_from, s.target_to, s.event_time,  s.created_at, s.updated_at,
+               b.id as broker_id, b.name as brokerage
+        FROM stocks s
+        LEFT JOIN brokers b ON s.broker_id = b.id
+    ` + whereClause + fmt.Sprintf(" ORDER BY s.%s %s LIMIT $%d OFFSET $%d",
+		filters.SortBy, strings.ToUpper(filters.SortOrder), len(args)+1, len(args)+2)
+
+	args = append(args, filters.Limit, filters.Offset)
+
+	rows, err := r.db.Query(ctx, query, args...)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to query stocks: %w", err)
+	}
+	defer rows.Close()
+
+	var stocks []*stockModel.Stock
+	for rows.Next() {
+		stock := &stockModel.Stock{}
+		err := rows.Scan(
+			&stock.ID, &stock.Ticker, &stock.Company, &stock.Action,
+			&stock.RatingFrom, &stock.RatingTo, &stock.TargetFrom, &stock.TargetTo,
+			&stock.EventTime, &stock.CreatedAt, &stock.UpdatedAt,
+			&stock.BrokerID, &stock.Brokerage,
+		)
+		if err != nil {
+			r.logger.Error("Failed to scan stock row", "error", err)
+			continue
+		}
+		stocks = append(stocks, stock)
+	}
+
+	pagination := &stockValidation.Pagination{
+		Page:       (filters.Offset / filters.Limit) + 1,
+		Limit:      filters.Limit,
+		TotalItems: totalItems,
+		TotalPages: (totalItems + filters.Limit - 1) / filters.Limit,
+	}
+	pagination.HasNext = pagination.Page < pagination.TotalPages
+	pagination.HasPrev = pagination.Page > 1
+
+	return stocks, pagination, nil
+}
+
+// buildEnhancedWhereClause constructs the SQL WHERE clause and its arguments based on the provided enhanced filters.
+func (r *stockRepository) buildEnhancedWhereClause(filters stockValidation.EnhancedStockFilters) (string, []interface{}) {
+	var conditions []string
+	var args []interface{}
+	argIndex := 1
+
+	// Handle multiple tickers
+	if len(filters.Tickers) > 0 {
+		placeholders := make([]string, len(filters.Tickers))
+		for i := range filters.Tickers {
+			placeholders[i] = fmt.Sprintf("$%d", argIndex)
+			args = append(args, filters.Tickers[i])
+			argIndex++
+		}
+		conditions = append(conditions, fmt.Sprintf("s.ticker IN (%s)", strings.Join(placeholders, ",")))
+	}
+
+	// Handle multiple companies
+	if len(filters.Companies) > 0 {
+		placeholders := make([]string, len(filters.Companies))
+		for i := range filters.Companies {
+			placeholders[i] = fmt.Sprintf("$%d", argIndex)
+			args = append(args, "%"+filters.Companies[i]+"%")
+			argIndex++
+		}
+		companyConditions := make([]string, len(placeholders))
+		for i, placeholder := range placeholders {
+			companyConditions[i] = fmt.Sprintf("s.company ILIKE %s", placeholder)
+		}
+		conditions = append(conditions, fmt.Sprintf("(%s)", strings.Join(companyConditions, " OR ")))
+	}
+
+	// Handle multiple brokerages
+	if len(filters.Brokerages) > 0 {
+		placeholders := make([]string, len(filters.Brokerages))
+		for i := range filters.Brokerages {
+			placeholders[i] = fmt.Sprintf("$%d", argIndex)
+			args = append(args, "%"+filters.Brokerages[i]+"%")
+			argIndex++
+		}
+		brokerageConditions := make([]string, len(placeholders))
+		for i, placeholder := range placeholders {
+			brokerageConditions[i] = fmt.Sprintf("b.name ILIKE %s", placeholder)
+		}
+		conditions = append(conditions, fmt.Sprintf("(%s)", strings.Join(brokerageConditions, " OR ")))
+	}
+
+	// Handle multiple actions
+	if len(filters.Actions) > 0 {
+		placeholders := make([]string, len(filters.Actions))
+		for i := range filters.Actions {
+			placeholders[i] = fmt.Sprintf("$%d", argIndex)
+			args = append(args, "%"+filters.Actions[i]+"%")
+			argIndex++
+		}
+		actionConditions := make([]string, len(placeholders))
+		for i, placeholder := range placeholders {
+			actionConditions[i] = fmt.Sprintf("s.action ILIKE %s", placeholder)
+		}
+		conditions = append(conditions, fmt.Sprintf("(%s)", strings.Join(actionConditions, " OR ")))
+	}
+
+	// Handle rating filters
+	if filters.RatingFrom != "" {
+		conditions = append(conditions, fmt.Sprintf("s.rating_from ILIKE $%d", argIndex))
+		args = append(args, "%"+filters.RatingFrom+"%")
+		argIndex++
+	}
+
+	if filters.RatingTo != "" {
+		conditions = append(conditions, fmt.Sprintf("s.rating_to ILIKE $%d", argIndex))
+		args = append(args, "%"+filters.RatingTo+"%")
+		argIndex++
+	}
+
+	// Handle target price filters
+	if filters.TargetFrom != nil {
+		conditions = append(conditions, fmt.Sprintf("s.target_from >= $%d", argIndex))
+		args = append(args, *filters.TargetFrom)
+		argIndex++
+	}
+
+	if filters.TargetTo != nil {
+		conditions = append(conditions, fmt.Sprintf("s.target_to <= $%d", argIndex))
+		args = append(args, *filters.TargetTo)
+		argIndex++
+	}
+
+	// Handle advanced filters
+	if filters.HasTargetPrice != nil {
+		if *filters.HasTargetPrice {
+			conditions = append(conditions, "s.target_from IS NOT NULL AND s.target_to IS NOT NULL")
+		} else {
+			conditions = append(conditions, "(s.target_from IS NULL OR s.target_to IS NULL)")
+		}
+	}
+
+	if filters.HasRating != nil {
+		if *filters.HasRating {
+			conditions = append(conditions, "s.rating_from IS NOT NULL AND s.rating_to IS NOT NULL")
+		} else {
+			conditions = append(conditions, "(s.rating_from IS NULL OR s.rating_to IS NULL)")
+		}
+	}
+
+	// Handle target change percentage filters
+	if filters.MinTargetChange != nil || filters.MaxTargetChange != nil {
+		changeCondition := "CASE WHEN s.target_from > 0 AND s.target_to > 0 THEN ((s.target_to - s.target_from) / s.target_from * 100) ELSE 0 END"
+
+		if filters.MinTargetChange != nil {
+			conditions = append(conditions, fmt.Sprintf("%s >= $%d", changeCondition, argIndex))
+			args = append(args, *filters.MinTargetChange)
+			argIndex++
+		}
+
+		if filters.MaxTargetChange != nil {
+			conditions = append(conditions, fmt.Sprintf("%s <= $%d", changeCondition, argIndex))
+			args = append(args, *filters.MaxTargetChange)
+			argIndex++
+		}
+	}
+
+	// Handle brokerage credibility score filters
+	if filters.MinBrokerScore != nil {
+		conditions = append(conditions, fmt.Sprintf("b.credibility_score >= $%d", argIndex))
+		args = append(args, *filters.MinBrokerScore)
+		argIndex++
+	}
+
+	if filters.MaxBrokerScore != nil {
+		conditions = append(conditions, fmt.Sprintf("b.credibility_score <= $%d", argIndex))
+		args = append(args, *filters.MaxBrokerScore)
+		argIndex++
+	}
+
+	// Handle enhanced date filters
+	dateConditions := r.buildEnhancedDateConditions(filters, &argIndex, &args)
+	if len(dateConditions) > 0 {
+		conditions = append(conditions, fmt.Sprintf("(%s)", strings.Join(dateConditions, " OR ")))
+	}
+
+	if len(conditions) == 0 {
+		return "", args
+	}
+
+	return " WHERE " + strings.Join(conditions, " AND "), args
+}
+
+// buildEnhancedDateConditions builds date-related WHERE conditions for enhanced filters
+func (r *stockRepository) buildEnhancedDateConditions(filters stockValidation.EnhancedStockFilters, argIndex *int, args *[]interface{}) []string {
+	var conditions []string
+
+	// Handle basic date range
+	if filters.DateFrom != nil {
+		conditions = append(conditions, fmt.Sprintf("s.event_time >= $%d", *argIndex))
+		*args = append(*args, *filters.DateFrom)
+		*argIndex++
+	}
+
+	if filters.DateTo != nil {
+		conditions = append(conditions, fmt.Sprintf("s.event_time <= $%d", *argIndex))
+		*args = append(*args, *filters.DateTo)
+		*argIndex++
+	}
+
+	// Handle multiple date ranges
+	for _, dateRange := range filters.DateRanges {
+		rangeCondition := fmt.Sprintf("(s.event_time >= $%d AND s.event_time <= $%d)", *argIndex, *argIndex+1)
+		conditions = append(conditions, rangeCondition)
+		*args = append(*args, dateRange.From, dateRange.To)
+		*argIndex += 2
+	}
+
+	// Handle time-based filters
+	now := time.Now()
+	if filters.LastHours != nil {
+		timeFrom := now.Add(-time.Duration(*filters.LastHours) * time.Hour)
+		conditions = append(conditions, fmt.Sprintf("s.event_time >= $%d", *argIndex))
+		*args = append(*args, timeFrom)
+		*argIndex++
+	}
+
+	if filters.LastDays != nil {
+		timeFrom := now.Add(-time.Duration(*filters.LastDays) * 24 * time.Hour)
+		conditions = append(conditions, fmt.Sprintf("s.event_time >= $%d", *argIndex))
+		*args = append(*args, timeFrom)
+		*argIndex++
+	}
+
+	if filters.LastWeeks != nil {
+		timeFrom := now.Add(-time.Duration(*filters.LastWeeks) * 7 * 24 * time.Hour)
+		conditions = append(conditions, fmt.Sprintf("s.event_time >= $%d", *argIndex))
+		*args = append(*args, timeFrom)
+		*argIndex++
+	}
+
+	if filters.LastMonths != nil {
+		timeFrom := now.Add(-time.Duration(*filters.LastMonths) * 30 * 24 * time.Hour)
+		conditions = append(conditions, fmt.Sprintf("s.event_time >= $%d", *argIndex))
+		*args = append(*args, timeFrom)
+		*argIndex++
+	}
+
+	return conditions
 }

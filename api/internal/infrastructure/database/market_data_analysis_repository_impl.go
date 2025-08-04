@@ -313,7 +313,7 @@ func (r *marketDataAnalysisRepositoryImpl) GetMarketDataSummary(ctx context.Cont
 		return summary, nil
 	}
 
-	query := fmt.Sprintf(`
+	query := `
 		SELECT 
 			COUNT(*) as total_records,
 			COUNT(DISTINCT ticker) as unique_tickers,
@@ -327,7 +327,7 @@ func (r *marketDataAnalysisRepositoryImpl) GetMarketDataSummary(ctx context.Cont
 			COUNT(*) FILTER (WHERE day_change_percent BETWEEN -2.0 AND 2.0) as neutral_count
 		FROM market_data 
 		WHERE data_timestamp >= now() - ($1::INTERVAL)
-	`)
+	`
 
 	var summary model.MarketDataSummary
 	err = r.pool.QueryRow(ctx, query, timeInterval).Scan(
@@ -342,40 +342,40 @@ func (r *marketDataAnalysisRepositoryImpl) GetMarketDataSummary(ctx context.Cont
 	}
 
 	// Get best performer
-	bestPerformerQuery := fmt.Sprintf(`
+	bestPerformerQuery := `
 		SELECT ticker 
 		FROM market_data 
 		WHERE data_timestamp >= now() - ($1::INTERVAL)
 		ORDER BY day_change_percent DESC 
 		LIMIT 1
-	`)
+	`
 	err = r.pool.QueryRow(ctx, bestPerformerQuery, timeInterval).Scan(&summary.BestPerformer)
 	if err != nil {
 		summary.BestPerformer = "N/A"
 	}
 
 	// Get worst performer
-	worstPerformerQuery := fmt.Sprintf(`
+	worstPerformerQuery := `
 		SELECT ticker 
 		FROM market_data 
 		WHERE data_timestamp >= now() - ($1::INTERVAL)
 		ORDER BY day_change_percent ASC 
 		LIMIT 1
-	`)
+	`
 	err = r.pool.QueryRow(ctx, worstPerformerQuery, timeInterval).Scan(&summary.WorstPerformer)
 	if err != nil {
 		summary.WorstPerformer = "N/A"
 	}
 
 	// Get most active ticker
-	mostActiveQuery := fmt.Sprintf(`
+	mostActiveQuery := `
 		SELECT ticker 
 		FROM market_data 
 		WHERE data_timestamp >= now() - ($1::INTERVAL)
 		GROUP BY ticker 
 		ORDER BY AVG(volume) DESC 
 		LIMIT 1
-	`)
+	`
 	err = r.pool.QueryRow(ctx, mostActiveQuery, timeInterval).Scan(&summary.MostActiveTicker)
 	if err != nil {
 		summary.MostActiveTicker = "N/A"

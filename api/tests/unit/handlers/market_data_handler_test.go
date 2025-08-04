@@ -288,7 +288,9 @@ func TestMarketDataHandler_ErrorResponseStructure(t *testing.T) {
 			// Simulate setting status and error response
 			w.WriteHeader(tt.statusCode)
 			response := map[string]string{"error": tt.errorMessage}
-			json.NewEncoder(w).Encode(response)
+			if err := json.NewEncoder(w).Encode(response); err != nil {
+				t.Errorf("Failed to encode response: %v", err)
+			}
 
 			assert.Equal(t, tt.expectedStatus, w.Code)
 

@@ -65,11 +65,12 @@ func DefaultScoringConfig() *ScoringConfig {
 		CacheTTL:          30 * time.Minute,
 		DataRetentionDays: 90,
 		Weights: model.ScoringWeights{
-			BrokerFrequency: 0.25,
-			TargetMovement:  0.25,
-			RatingChange:    0.25,
+			BrokerFrequency: 0.20,
+			TargetMovement:  0.20,
+			RatingChange:    0.20,
 			Recency:         0.15,
-			Consensus:       0.10,
+			Consensus:       0.15,
+			Certainty:       0.10, // Weight for recommendation strength/certainty
 		},
 		RecencyThresholds: RecencyThresholds{
 			VeryRecent:      1.0,
@@ -109,7 +110,8 @@ type BasicScoringFactors struct {
 	TargetMovementScore  float64 `json:"target_movement_score"`  // Based on TargetFrom/TargetTo
 	RatingChangeScore    float64 `json:"rating_change_score"`    // Based on RatingFrom/RatingTo
 	RecencyScore         float64 `json:"recency_score"`          // Based on EventTime
-	ConsensusScore       float64 `json:"consensus_score"`        // Aggregation of events by ticker
+	ConsensusScore       float64 `json:"consensus_score"`        // Aggregation of events by ticker (0-1)
+	CertaintyScore       float64 `json:"certainty_score"`        // Strength of recommendations regardless of direction
 }
 
 // NewBasicScoringCalculator creates a new instance of the scoring calculator with optional configuration
@@ -180,6 +182,7 @@ func (calc *BasicScoringCalculator) CalculateAggregatedRecommendationFromEvents(
 	ratingScore := calc.calculateRatingChangeScore(recentEvents)
 	recencyScore := calc.calculateRecencyScore(recentEvents)
 	consensusScore := calc.calculateConsensusScore(recentEvents)
+	certaintyScore := calc.calculateCertaintyScore(recentEvents)
 
 	// 4. Combine scores with configurable weights
 	scoringFactors := BasicScoringFactors{
@@ -188,6 +191,7 @@ func (calc *BasicScoringCalculator) CalculateAggregatedRecommendationFromEvents(
 		RatingChangeScore:    ratingScore,
 		RecencyScore:         recencyScore,
 		ConsensusScore:       consensusScore,
+		CertaintyScore:       certaintyScore,
 	}
 
 	finalScore := calc.combineScores(scoringFactors, calc.config.Weights)
@@ -450,32 +454,82 @@ func (calc *BasicScoringCalculator) calculateRecencyScore(events []*stockModel.S
 }
 
 // calculateConsensusScore calculates consensus based on positive vs negative events
+// Returns a value from 0 (strong negative consensus) to 1 (strong positive consensus)
+// 0.5 represents neutral/mixed consensus
 func (calc *BasicScoringCalculator) calculateConsensusScore(events []*stockModel.Stock) float64 {
 	if len(events) == 0 {
 		return calc.config.NeutralScore
 	}
 
 	positiveCount := 0
+	negativeCount := 0
+	neutralCount := 0
+
 	for _, event := range events {
-		if event.IsRecommendation() {
-			positiveCount++
+		_, finalRating := event.GetRatingScore()
+
+		if finalRating > 0.5 {
+			positiveCount++ // Strong Buy, Buy, Outperform
+		} else if finalRating < 0.5 {
+			negativeCount++ // Sell, Strong Sell, Underperform
+		} else {
+			neutralCount++ // Hold, Neutral
 		}
 	}
 
-	// Calculate consensus as ratio of positive events
-	consensus := float64(positiveCount) / float64(len(events))
-	return consensus
+	// Calculate consensus as ratio: 1.0 = all positive, 0.0 = all negative, 0.5 = mixed/neutral
+	totalEvents := float64(len(events))
+	positiveRatio := float64(positiveCount) / totalEvents
+
+	return positiveRatio
+}
+
+// calculateCertaintyScore calculates how certain/confident the recommendations are
+// regardless of direction - this helps identify strong recommendations
+func (calc *BasicScoringCalculator) calculateCertaintyScore(events []*stockModel.Stock) float64 {
+	if len(events) == 0 {
+		return 0
+	}
+
+	totalStrength := 0.0
+	for _, event := range events {
+		strength := event.GetRecommendationStrength()
+		totalStrength += strength
+	}
+
+	// Average strength of all recommendations
+	return totalStrength / float64(len(events))
 }
 
 // combineScores combines all scoring factors with their weights
+// This improved method allows for strong negative recommendations when consensus is low and certainty is high
 func (calc *BasicScoringCalculator) combineScores(factors BasicScoringFactors, weights model.ScoringWeights) float64 {
-	score := factors.BrokerFrequencyScore*weights.BrokerFrequency +
+	// Calculate base score using traditional approach for most factors
+	baseScore := factors.BrokerFrequencyScore*weights.BrokerFrequency +
 		factors.TargetMovementScore*weights.TargetMovement +
 		factors.RatingChangeScore*weights.RatingChange +
-		factors.RecencyScore*weights.Recency +
-		factors.ConsensusScore*weights.Consensus
+		factors.RecencyScore*weights.Recency
 
-	return math.Min(1.0, math.Max(0.0, score))
+	// Consensus score represents the direction (0 = negative, 1 = positive, 0.5 = neutral)
+	consensusContribution := factors.ConsensusScore * weights.Consensus
+
+	// Certainty score represents the strength/confidence regardless of direction
+	certaintyContribution := factors.CertaintyScore * weights.Certainty
+
+	// Combine base score with consensus and certainty
+	finalScore := baseScore + consensusContribution + certaintyContribution
+
+	// If consensus is strongly negative (< 0.3) and certainty is high (> 0.7),
+	// allow the score to go lower to enable SELL/STRONG_SELL recommendations
+	if factors.ConsensusScore < 0.3 && factors.CertaintyScore > 0.7 {
+		// For strong negative consensus with high certainty, scale the score down
+		// This enables SELL (< 0.2) and STRONG_SELL (< 0.1) recommendations
+		negativeBias := (0.3 - factors.ConsensusScore) * factors.CertaintyScore * 0.5
+		finalScore = finalScore - negativeBias
+	}
+
+	// Ensure score stays within 0-1 bounds
+	return math.Min(1.0, math.Max(0.0, finalScore))
 }
 
 // calculateConfidence calculates confidence level based on number of events
@@ -537,6 +591,13 @@ func (calc *BasicScoringCalculator) createScoringFactorsDetails(factors BasicSco
 			Score:       factors.ConsensusScore,
 			Weight:      weights.Consensus,
 			Explanation: calc.explainConsensus(factors.ConsensusScore),
+			Tier:        enums.RECOMMENDATION_TIER_BASIC,
+		},
+		{
+			Name:        "Recommendation Certainty",
+			Score:       factors.CertaintyScore,
+			Weight:      weights.Certainty,
+			Explanation: calc.explainCertainty(factors.CertaintyScore),
 			Tier:        enums.RECOMMENDATION_TIER_BASIC,
 		},
 	}
@@ -605,5 +666,18 @@ func (calc *BasicScoringCalculator) explainConsensus(score float64) string {
 		return "Mixed market opinions"
 	default:
 		return "Negative market consensus"
+	}
+}
+
+func (calc *BasicScoringCalculator) explainCertainty(score float64) string {
+	switch {
+	case score >= 0.8:
+		return "Very high confidence in recommendation strength"
+	case score >= 0.6:
+		return "High confidence based on strong analyst opinions"
+	case score >= 0.4:
+		return "Moderate confidence in recommendation"
+	default:
+		return "Lower confidence due to weak or neutral opinions"
 	}
 }

@@ -51,6 +51,6 @@ SELECT 'unique_tickers'        AS metric, unique_tickers::STRING  AS value, 'Uni
 UNION ALL
 SELECT 'stocks_recent_90d'     AS metric, COUNT(*)::STRING        AS value, 'Events last 90 days'                         AS description FROM stocks WHERE event_time > now() - INTERVAL '90 days'
 UNION ALL
-SELECT 'unique_brokers'        AS metric, COUNT(DISTINCT brokerage)::STRING AS value, 'Unique brokerages'                  AS description FROM stocks WHERE brokerage IS NOT NULL
+SELECT 'unique_brokers'        AS metric, COUNT(DISTINCT broker_id)::STRING AS value, 'Unique brokerages'                  AS description FROM stocks WHERE broker_id IS NOT NULL
 UNION ALL
 SELECT 'avg_events_per_ticker' AS metric, ROUND(AVG(cnt),2)::STRING AS value, 'Avg events per ticker' FROM (SELECT COUNT(*) cnt FROM stocks GROUP BY ticker);
