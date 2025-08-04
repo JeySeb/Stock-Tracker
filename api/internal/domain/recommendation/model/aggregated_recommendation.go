@@ -58,6 +58,7 @@ type ScoringWeights struct {
 	RatingChange    float64
 	Recency         float64
 	Consensus       float64
+	Certainty       float64 // Weight for recommendation certainty/strength
 }
 
 // NewAggregatedRecommendation creates a new aggregated recommendation instance
@@ -87,15 +88,16 @@ func getAggregatedExpirationByTier(tier enums.RecommendationTier) time.Duration 
 }
 
 // DetermineType sets the recommendation type based on the basic score
+// Updated thresholds to better distribute recommendations across all types
 func (r *AggregatedRecommendation) DetermineType() {
 	switch {
-	case r.BasicScore >= 0.8:
+	case r.BasicScore >= 0.75:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_STRONG_BUY
-	case r.BasicScore >= 0.6:
+	case r.BasicScore >= 0.55:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_BUY
-	case r.BasicScore >= 0.4:
+	case r.BasicScore >= 0.35:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_HOLD
-	case r.BasicScore >= 0.2:
+	case r.BasicScore >= 0.15:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_SELL
 	default:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_STRONG_SELL

@@ -87,17 +87,44 @@ func (s *Stock) GetRatingChangeScore() float64 {
 }
 
 // IsRecommendation determines if this is a positive recommendation
+// A recommendation is positive if the final rating suggests buying (Strong Buy, Buy, Outperform)
 func (s *Stock) IsRecommendation() bool {
-	// Check for positive actions
-	positiveActions := []string{"upgraded", "initiated", "reiterated"}
-	action := strings.ToLower(s.Action)
+	_, toScore := s.GetRatingScore()
 
-	for _, positive := range positiveActions {
-		if strings.Contains(action, positive) {
-			return true
-		}
-	}
+	// Consider positive if final rating is above neutral (0.5)
+	// This means Strong Buy (1.0), Buy (0.8), Outperform (0.75) are positive
+	// Hold (0.5), Neutral (0.4), Underperform (0.25), Sell (0.2), Strong Sell (0.0) are negative
+	return toScore > 0.5
+}
 
-	// Check for rating improvement
+// IsPositiveChange determines if this represents a positive rating change
+func (s *Stock) IsPositiveChange() bool {
 	return s.GetRatingChangeScore() > 0
+}
+
+// IsNegativeChange determines if this represents a negative rating change
+func (s *Stock) IsNegativeChange() bool {
+	return s.GetRatingChangeScore() < 0
+}
+
+// GetRecommendationStrength returns the strength of the recommendation (0-1)
+// regardless of direction, for confidence-based calculations
+func (s *Stock) GetRecommendationStrength() float64 {
+	_, toScore := s.GetRatingScore()
+
+	// Calculate distance from neutral (0.5)
+	// Strong opinions (very high or very low scores) have high strength
+	neutralPoint := 0.5
+	distance := abs(toScore - neutralPoint)
+
+	// Normalize to 0-1 scale (max distance from neutral is 0.5)
+	return distance / 0.5
+}
+
+// Helper function for absolute value
+func abs(x float64) float64 {
+	if x < 0 {
+		return -x
+	}
+	return x
 }
