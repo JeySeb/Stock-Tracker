@@ -74,7 +74,7 @@
             :to="link"
             class="inline-flex items-center text-sm font-medium text-primary-600 hover:text-primary-700"
           >
-            Explore Feature
+            Explore {{ title }}
             <svg class="ml-1 w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>

@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6" :style="sizeStyles">
     <!-- Loading State -->
     <div v-if="loading" class="animate-pulse space-y-4">
       <div class="h-8 bg-gray-200 rounded w-1/3"></div>
@@ -10,24 +10,26 @@
     <div v-else class="space-y-2">
       <!-- Header with Icon -->
       <div class="flex items-center justify-between">
-        <h3 class="text-sm font-medium text-gray-500">{{ title }}</h3>
+        <h3 class="text-sm font-medium text-gray-500" :style="{ fontSize: `${0.875 * sizeFactor}rem` }">{{ title }}</h3>
         <div 
-          class="w-8 h-8 rounded-full flex items-center justify-center"
+          class="rounded-full flex items-center justify-center"
           :class="getIconBackgroundClass"
+          :style="{ width: `${2 * sizeFactor}rem`, height: `${2 * sizeFactor}rem` }"
         >
-          <span class="text-lg">{{ icon }}</span>
+          <span :style="{ fontSize: `${1.125 * sizeFactor}rem` }">{{ icon }}</span>
         </div>
       </div>
 
       <!-- Value -->
       <div class="flex items-baseline">
         <div class="flex items-baseline">
-          <span class="text-2xl font-semibold text-gray-900">
+          <span class="font-semibold text-gray-900" :style="{ fontSize: `${1.5 * sizeFactor}rem` }">
             {{ formattedValue }}
           </span>
           <span 
             v-if="subtitle" 
-            class="ml-2 text-sm text-gray-500"
+            class="ml-2 text-gray-500"
+            :style="{ fontSize: `${0.875 * sizeFactor}rem` }"
           >
             {{ subtitle }}
           </span>
@@ -40,14 +42,16 @@
         class="flex items-center space-x-1"
       >
         <span 
-          class="text-sm font-medium"
+          class="font-medium"
           :class="getTrendClass"
+          :style="{ fontSize: `${0.875 * sizeFactor}rem` }"
         >
           {{ trend > 0 ? '+' : '' }}{{ trend }}%
         </span>
         <span 
-          class="text-xs text-gray-500"
+          class="text-gray-500"
           v-if="trendLabel"
+          :style="{ fontSize: `${0.75 * sizeFactor}rem` }"
         >
           {{ trendLabel }}
         </span>
@@ -80,6 +84,8 @@ interface Props {
   trendLabel?: string
   /** Optional function to format the value */
   format?: (value: number) => string
+  /** Size multiplier for the card (1 is default size) */
+  sizeFactor?: number
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -87,7 +93,8 @@ const props = withDefaults(defineProps<Props>(), {
   icon: '📊',
   subtitle: '',
   trendLabel: '',
-  format: (v: number) => v?.toLocaleString() ?? '-'
+  format: (v: number) => v?.toLocaleString() ?? '-',
+  sizeFactor: 1
 })
 
 // Computed Properties
@@ -117,6 +124,10 @@ const getIconBackgroundClass = computed(() => {
   }
   return colorMap[props.color] || ['bg-gray-100', 'text-gray-600']
 })
+
+const sizeStyles = computed(() => ({
+  padding: `${1.5 * props.sizeFactor}rem`
+}))
 </script>
 
 <style scoped>

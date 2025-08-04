@@ -1,67 +1,49 @@
 <template>
     <div class="space-y-8">
-      <!-- Welcome Header -->
-      <div class="bg-gradient-to-r from-primary-600 to-primary-700 rounded-lg p-6 text-white">
-        <div class="flex items-center justify-between">
-          <div>
-            <h1 class="text-2xl font-bold">
-              Welcome{{ authStore.user ? `, ${authStore.user.first_name}` : ' to Stock Tracker' }}
-            </h1>
-            <p class="mt-2 text-primary-100">
-              Your {{ authStore.userTier }} dashboard with market insights and recommendations
-            </p>
-          </div>
-          <TierBadge :tier="authStore.userTier" class="bg-white/20 text-white border-white/30" />
-        </div>
-      </div>
+
   
-      <!-- Key Metrics -->
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <MetricCard
-          title="Total Stock Events"
-          :value="totalStocksCount"
-          :loading="stocksStore.isLoading"
-          icon="📊"
-          color="blue"
-        />
-        <MetricCard
-          title="Active Recommendations"
-          :value="activeRecommendationsCount"
-          :loading="recommendationsStore.isLoading"
-          icon="⭐"
-          color="green"
-        />
-        <MetricCard
-          title="Strong Buy Signals"
-          :value="strongBuyCount"
-          :loading="recommendationsStore.isLoading"
-          icon="📈"
-          color="emerald"
-        />
-        <MetricCard
-          title="Rate Limit Remaining"
-          :value="rateLimitRemaining"
-          :loading="recommendationsStore.isLoading"
-          icon="⚡"
-          color="amber"
-          :format="(v: number) => v ? `${v}/hr` : '-'"
-        />
-      </div>
+      <!-- Enhanced Stock Heat Map -->
+      <StockHeatMap
+        :events="recentStockEvents"
+        :loading="stocksStore.isLoading"
+      />
   
       <!-- Charts Section -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <!-- Recommendations Overview Chart -->
         <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Recommendation Distribution</h3>
-          <RecommendationDistributionChart
-            :data="recommendationChartData"
-            :loading="recommendationsStore.isLoading"
-          />
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-semibold text-gray-900">Stock Events</h3>
+            <div class="flex items-center gap-2">
+              <span v-if="stocksStore.isLoading" class="animate-pulse bg-gray-200 h-6 w-16 rounded"></span>
+              <span v-else class="text-sm font-medium text-gray-600">
+                Total: {{ totalStocksCount?.toLocaleString() ?? '-' }}
+              </span>
+            </div>
+          </div>
         </div>
-  
+
         <!-- Top Performers -->
         <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Recommendations</h3>
+          <div class="flex gap-4">
+            <div class="w-[70%]">
+              <RecommendationDistributionChart
+                :data="recommendationChartData"
+                :loading="recommendationsStore.isLoading"
+              />
+            </div>
+            <div class="w-[30%] flex items-center">
+              <MetricCard
+                title="Your Active Recommendations"
+                :value="activeRecommendationsCount"
+                :loading="recommendationsStore.isLoading"
+                icon="🧠"
+                color="green"
+                :sizeFactor="0.8"
+              />
+            </div>
+          </div>
           <TopRecommendationsList
             :recommendations="topRecommendations"
             :loading="recommendationsStore.isLoading"
@@ -82,13 +64,6 @@
           available
         />
         
-        <FeatureCard
-          title="Real-Time Data"
-          description="Access live market data and external analytics"
-          icon="📊"
-          :link="{ name: 'real-time-data' }"
-          available
-        />
   
         <FeatureCard
           title="Recommendations"
@@ -107,34 +82,6 @@
           @upgrade="$router.push('/subscription')"
         />
   
-        <!-- Premium Only -->
-        <FeatureCard
-          title="AI Insights"
-          description="Advanced sentiment analysis and market predictions"
-          icon="🤖"
-          :available="authStore.hasFeature('ai_insights')"
-          premium-only
-          @upgrade="$router.push('/subscription')"
-        />
-  
-        <FeatureCard
-          title="Sentiment Analysis"
-          description="Track news and social media sentiment for stocks"
-          icon="💭"
-          :available="authStore.hasFeature('sentiment_analysis')"
-          premium-only
-          @upgrade="$router.push('/subscription')"
-        />
-  
-        <!-- AI Chat Placeholder -->
-        <FeatureCard
-          title="AI Assistant"
-          description="Chat with our AI for personalized investment insights"
-          icon="💬"
-          :available="false"
-          coming-soon
-          placeholder-for-ai
-        />
       </div>
   
       <!-- Debug Section (Development Only) -->
@@ -153,17 +100,6 @@
         </div>
       </div>
 
-      <!-- Recent Activity -->
-      <div class="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div class="px-6 py-4 border-b border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-900">Recent Stock Events</h3>
-        </div>
-        <RecentStockEvents
-          :events="recentStockEvents"
-          :loading="stocksStore.isLoading"
-          @view-details="handleViewStock"
-        />
-      </div>
     </div>
   </template>
   
@@ -178,7 +114,7 @@
   import FeatureCard from '@/components/features/dashboard/FeatureCard.vue'
   import RecommendationDistributionChart from '@/components/features/dashboard/RecommendationDistributionChart.vue'
   import TopRecommendationsList from '@/components/features/dashboard/TopRecommendationsList.vue'
-  import RecentStockEvents from '@/components/features/dashboard/RecentStockEvents.vue'
+  import StockHeatMap from '@/components/features/dashboard/StockHeatMap.vue'
   import type { Recommendation } from '@/types'
 
   const router = useRouter()
@@ -219,7 +155,7 @@
   
   const recentStockEvents = computed(() => {
     if (!stocksStore.stocks || stocksStore.stocks.length === 0) return []
-    return stocksStore.stocks.slice(0, 10)
+    return stocksStore.stocks.slice(0, 60) // Show up to 60 stocks for the heat map
   })
   
   const recommendationChartData = computed(() => {

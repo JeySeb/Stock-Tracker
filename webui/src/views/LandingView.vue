@@ -1,32 +1,5 @@
 <template>
   <div class="min-h-screen bg-white">
-    <!-- Navigation -->
-    <nav class="bg-white shadow-sm">
-      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div class="flex justify-between h-16">
-          <div class="flex">
-            <div class="flex-shrink-0 flex items-center">
-              <h1 class="text-xl font-bold text-primary-600">Stock Tracker</h1>
-            </div>
-          </div>
-          <div class="flex items-center space-x-4">
-            <router-link 
-              to="/login" 
-              class="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-md text-sm font-medium"
-            >
-              Sign In
-            </router-link>
-            <router-link 
-              to="/register" 
-              class="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-md text-sm font-medium"
-            >
-              Get Started
-            </router-link>
-          </div>
-        </div>
-      </div>
-    </nav>
-
     <!-- Hero Section -->
     <div class="relative bg-white overflow-hidden">
       <div class="max-w-7xl mx-auto">
@@ -41,24 +14,54 @@
                 Get intelligent stock recommendations powered by AI and real-time market data. 
                 Make informed investment decisions with our advanced analytics platform.
               </p>
-              <div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start">
+              <div class="mt-5 sm:mt-8 sm:flex sm:justify-center lg:justify-start space-y-3 sm:space-y-0 sm:space-x-3">
+                <div class="rounded-md shadow">
+                  <router-link
+                    to="/dashboard"
+                    class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 md:py-4 md:text-lg md:px-10 transition-colors"
+                  >
+                    Explore Now
+                  </router-link>
+                </div>
                 <div class="rounded-md shadow">
                   <router-link
                     to="/register"
-                    class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-primary-600 hover:bg-primary-700 md:py-4 md:text-lg md:px-10"
+                    class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 md:py-4 md:text-lg md:px-10 transition-colors"
                   >
                     Start Free Trial
                   </router-link>
                 </div>
-                <div class="mt-3 sm:mt-0 sm:ml-3">
+                <div>
                   <button
                     @click="scrollToPricing"
-                    class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-primary-700 bg-primary-100 hover:bg-primary-200 md:py-4 md:text-lg md:px-10"
+                    class="w-full flex items-center justify-center px-8 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10 transition-colors"
                   >
                     View Pricing
                   </button>
                 </div>
               </div>
+              
+              <!-- Guest Access Prominent Call-to-Action
+              <div class="mt-8 p-4 bg-gradient-to-r from-primary-50 to-blue-50 rounded-lg border border-primary-200">
+                <div class="flex items-center space-x-3">
+                  <div class="flex-shrink-0">
+                    <div class="w-8 h-8 bg-primary-600 rounded-full flex items-center justify-center">
+                      <span class="text-white text-sm">🚀</span>
+                    </div>
+                  </div>
+                  <div class="flex-1">
+                    <p class="text-sm text-primary-800">
+                      <strong>New to Stock Tracker?</strong> Explore our dashboard with sample data - no registration required!
+                    </p>
+                  </div>
+                  <router-link
+                    to="/dashboard"
+                    class="flex-shrink-0 bg-primary-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-primary-700 transition-colors"
+                  >
+                    Explore Now
+                  </router-link>
+                </div>
+              </div> -->
             </div>
           </main>
         </div>
@@ -66,8 +69,9 @@
       <div class="lg:absolute lg:inset-y-0 lg:right-0 lg:w-1/2">
         <div class="h-56 w-full bg-gradient-to-br from-primary-400 to-primary-600 sm:h-72 md:h-96 lg:w-full lg:h-full flex items-center justify-center">
           <div class="text-center text-white">
-            <div class="text-6xl mb-4">📈</div>
-            <div class="text-xl font-semibold">Real-time Analytics</div>
+            <AnimatedStockIcon />
+            <div class="text-xl font-semibold mt-4">Real-time Analytics</div>
+            <div class="text-sm opacity-90 mt-2">Live market insights at your fingertips</div>
           </div>
         </div>
       </div>
@@ -332,6 +336,8 @@
 </template>
 
 <script setup lang="ts">
+import AnimatedStockIcon from '@/components/icons/AnimatedStockIcon.vue'
+
 const features = [
   {
     name: 'Real-time Market Data',

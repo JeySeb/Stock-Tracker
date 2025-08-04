@@ -46,7 +46,6 @@ export interface StockEvent {
   target_from: number
   target_to: number
   event_time: string
-  price_close: number | null
   created_at: string
 }
 
