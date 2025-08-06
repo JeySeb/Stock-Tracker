@@ -53,12 +53,14 @@ type EventStatistics struct {
 
 // ScoringWeights defines the weights for different scoring factors
 type ScoringWeights struct {
-	BrokerFrequency float64
-	TargetMovement  float64
-	RatingChange    float64
-	Recency         float64
-	Consensus       float64
-	Certainty       float64 // Weight for recommendation certainty/strength
+	BrokerFrequency      float64 // Weight for broker credibility/frequency
+	TargetMovement       float64 // Weight for price target changes
+	RatingChange         float64 // Weight for rating upgrades/downgrades
+	Recency              float64 // Weight for how recent the recommendations are
+	Consensus            float64 // Weight for directional consensus [-1, +1]
+	Certainty            float64 // Weight for non-directional certainty [0, 1]
+	DirectionalCertainty float64 // Weight for directional certainty [-1, +1]
+	ConsensusStrength    float64 // Weight for consensus strength regardless of direction
 }
 
 // NewAggregatedRecommendation creates a new aggregated recommendation instance
@@ -91,13 +93,13 @@ func getAggregatedExpirationByTier(tier enums.RecommendationTier) time.Duration 
 // Updated thresholds to better distribute recommendations across all types
 func (r *AggregatedRecommendation) DetermineType() {
 	switch {
-	case r.BasicScore >= 0.75:
+	case r.BasicScore >= 0.70:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_STRONG_BUY
 	case r.BasicScore >= 0.55:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_BUY
-	case r.BasicScore >= 0.35:
+	case r.BasicScore >= 0.40:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_HOLD
-	case r.BasicScore >= 0.15:
+	case r.BasicScore >= 0.25:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_SELL
 	default:
 		r.RecommendationType = enums.RECOMMENDATION_TYPE_STRONG_SELL

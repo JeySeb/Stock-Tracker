@@ -95,7 +95,7 @@
             <div v-for="feature in features" :key="feature.name" class="relative">
               <dt>
                 <div class="absolute flex items-center justify-center h-12 w-12 rounded-md bg-primary-500 text-white">
-                  <span class="text-2xl">{{ feature.icon }}</span>
+                  <component :is="feature.icon" class="h-6 w-6" />
                 </div>
                 <p class="ml-16 text-lg leading-6 font-medium text-gray-900">{{ feature.name }}</p>
               </dt>
@@ -337,37 +337,44 @@
 
 <script setup lang="ts">
 import AnimatedStockIcon from '@/components/icons/AnimatedStockIcon.vue'
-
+import { 
+  ChartBarIcon, 
+  StarIcon, 
+  ScaleIcon, 
+  CpuChipIcon, 
+  ChartPieIcon, 
+  ArrowPathIcon 
+} from '@heroicons/vue/24/outline'
 const features = [
   {
     name: 'Real-time Market Data',
-    description: 'Access live stock prices, market trends, and financial indicators from multiple sources.',
-    icon: '📊'
+    description: 'Access live market data from major brokers with instant price updates and market indicators.',
+    icon: ChartBarIcon
   },
   {
-    name: 'AI-Powered Recommendations',
-    description: 'Get intelligent stock recommendations based on advanced machine learning algorithms.',
-    icon: '🤖'
+    name: 'Top Broker Recommendations',
+    description: 'Get curated recommendations from leading and most reliable brokers in the market.',
+    icon: StarIcon
   },
   {
-    name: 'Sentiment Analysis',
-    description: 'Track news and social media sentiment to gauge market emotions around stocks.',
-    icon: '💭'
+    name: 'Risk Assessment Tools',
+    description: 'Comprehensive risk analysis tools to evaluate and manage your investment risks.',
+    icon: ScaleIcon
   },
   {
-    name: 'Risk Assessment',
-    description: 'Understand investment risks with comprehensive analysis and scoring.',
-    icon: '⚖️'
+    name: 'AI-Powered Insights',
+    description: 'Smart recommendations powered by AI algorithms analyzing market patterns and trends.',
+    icon: CpuChipIcon
   },
   {
     name: 'Portfolio Analytics',
-    description: 'Advanced analytics to track and optimize your investment portfolio performance.',
-    icon: '📈'
+    description: 'Track and analyze your portfolio performance with advanced metrics and visualizations.',
+    icon: ChartPieIcon
   },
   {
-    name: 'External API Integration',
-    description: 'Connect with Yahoo Finance, Alpha Vantage, and other financial data providers.',
-    icon: '🔗'
+    name: 'Market Data Integration',
+    description: 'Real-time market data integration with major financial data providers and exchanges.',
+    icon: ArrowPathIcon
   }
 ]
 

@@ -44,29 +44,11 @@
             <span class="text-gray-500">Price:</span>
             <span class="font-medium ml-1">${{ recommendation.external_data.current_price.toFixed(2) }}</span>
           </div>
-          <div>
-            <span class="text-gray-500">Change:</span>
-            <span :class="getChangeClass(recommendation.external_data.price_change_24h)" class="ml-1">
-              {{ formatChange(recommendation.external_data.price_change_24h) }}%
-            </span>
-          </div>
+
         </div>
       </div>
   
-      <!-- AI Insights Preview (Premium only) -->
-      <div v-if="recommendation.ai_insights && userTier === 'premium'" class="border-t pt-4 mb-4">
-        <p class="text-xs text-gray-500 mb-2">AI Insights</p>
-        <div class="text-xs space-y-1">
-          <div>
-            <span class="text-gray-500">Sentiment:</span>
-            <span class="font-medium ml-1 capitalize">{{ recommendation.ai_insights.news_sentiment }}</span>
-          </div>
-          <div>
-            <span class="text-gray-500">Risk:</span>
-            <span class="font-medium ml-1 capitalize">{{ recommendation.ai_insights.risk_assessment }}</span>
-          </div>
-        </div>
-      </div>
+
   
       <!-- Upgrade Prompt for Guest/Basic -->
       <div v-if="userTier !== 'premium'" class="border-t pt-4 mb-4">

@@ -8,12 +8,12 @@
         :loading="stocksStore.isLoading"
       />
   
-      <!-- Charts Section -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <!-- Recommendations Overview Chart -->
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-gray-900">Stock Events</h3>
+      <!-- Enhanced Analytics Section -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <!-- Enhanced Stock Events (2/3 width) -->
+        <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+          <div class="flex items-center justify-between mb-6">
+            <h3 class="text-lg font-semibold text-gray-900">Recent Stock Events</h3>
             <div class="flex items-center gap-2">
               <span v-if="stocksStore.isLoading" class="animate-pulse bg-gray-200 h-6 w-16 rounded"></span>
               <span v-else class="text-sm font-medium text-gray-600">
@@ -21,65 +21,69 @@
               </span>
             </div>
           </div>
+          
+          <EnhancedStockEvents
+            :events="recentStockEvents"
+            :loading="stocksStore.isLoading"
+            @view-stock="handleViewStock"
+          />
         </div>
 
-        <!-- Top Performers -->
+        <!-- Broker Credibility Report (1/3 width) -->
         <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <h3 class="text-lg font-semibold text-gray-900 mb-4">Top Recommendations</h3>
-          <div class="flex gap-4">
-            <div class="w-[70%]">
-              <RecommendationDistributionChart
-                :data="recommendationChartData"
-                :loading="recommendationsStore.isLoading"
-              />
-            </div>
-            <div class="w-[30%] flex items-center">
-              <MetricCard
-                title="Your Active Recommendations"
-                :value="activeRecommendationsCount"
-                :loading="recommendationsStore.isLoading"
-                icon="🧠"
-                color="green"
-                :sizeFactor="0.8"
-              />
-            </div>
-          </div>
-          <TopRecommendationsList
-            :recommendations="topRecommendations"
-            :loading="recommendationsStore.isLoading"
-            :user-tier="authStore.userTier"
-            @view-details="handleViewRecommendation"
+          <BrokerCredibilityReport
+            :brokers="brokersStore.topBrokersByReportCount"
+            :loading="brokersStore.isLoading"
+            @view-broker="handleViewBroker"
           />
         </div>
       </div>
+
+      <!-- Enhanced Recommendations Section -->
+      <EnhancedRecommendationsCard
+        :recommendations="Array.from(recommendationsStore.recommendations || [])"
+        :loading="recommendationsStore.isLoading"
+        :user-tier="authStore.userTier"
+        :rate-limit-remaining="rateLimitRemaining"
+        @view-details="handleViewRecommendation"
+        @view-all="$router.push('/recommendations')"
+        @refresh-recommendations="refreshRecommendations"
+      />
   
       <!-- Feature Cards Based on Tier -->
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Always Available -->
-        <FeatureCard
+                <FeatureCard
           title="Stock Explorer"
           description="Browse and filter stock events from major brokerages"
-          icon="🔍"
+          :icon="MagnifyingGlassIcon"
           :link="{ name: 'stocks' }"
           available
+          icon-bg-color="bg-green-100"
+          icon-text-color="text-green-600"
         />
         
   
         <FeatureCard
           title="Recommendations"
           description="Get AI-powered stock recommendations based on broker actions"
-          icon="⭐"
+          :icon="StarIcon"
           :link="{ name: 'recommendations' }"
           available
+          icon-bg-color="bg-yellow-100"
+          icon-text-color="text-yellow-600"
         />
-  
+
         <!-- Basic/Premium Features -->
         <FeatureCard
           title="Real-time Data"
           description="Access live market data and external analytics"
-          icon="📊"
+          :icon="ChartBarIcon"
           :available="authStore.hasFeature('real_time_data')"
+          :link="authStore.hasFeature('real_time_data') ? { name: 'real-time-data' } : undefined"
           @upgrade="$router.push('/subscription')"
+          icon-bg-color="bg-blue-100"
+          icon-text-color="text-blue-600"
         />
   
       </div>
@@ -105,22 +109,28 @@
   
   <script setup lang="ts">
   import { onMounted, computed } from 'vue'
-  import { useRouter } from 'vue-router'
-  import { useAuthStore } from '@/stores/auth'
-  import { useStocksStore } from '@/stores/stocks'
-  import { useRecommendationsStore } from '@/stores/recommendations'
-  import TierBadge from '@/components/ui/TierBadge.vue'
-  import MetricCard from '@/components/features/dashboard/MetricCard.vue'
-  import FeatureCard from '@/components/features/dashboard/FeatureCard.vue'
-  import RecommendationDistributionChart from '@/components/features/dashboard/RecommendationDistributionChart.vue'
-  import TopRecommendationsList from '@/components/features/dashboard/TopRecommendationsList.vue'
-  import StockHeatMap from '@/components/features/dashboard/StockHeatMap.vue'
-  import type { Recommendation } from '@/types'
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
+import { useStocksStore } from '@/stores/stocks'
+import { useRecommendationsStore } from '@/stores/recommendations'
+import { useBrokersStore } from '@/stores/brokers'
+import TierBadge from '@/components/ui/TierBadge.vue'
+import MetricCard from '@/components/features/dashboard/MetricCard.vue'
+import FeatureCard from '@/components/features/dashboard/FeatureCard.vue'
+import RecommendationDistributionChart from '@/components/features/dashboard/RecommendationDistributionChart.vue'
+import TopRecommendationsList from '@/components/features/dashboard/TopRecommendationsList.vue'
+import StockHeatMap from '@/components/features/dashboard/StockHeatMap.vue'
+import EnhancedStockEvents from '@/components/features/dashboard/EnhancedStockEvents.vue'
+import BrokerCredibilityReport from '@/components/features/dashboard/BrokerCredibilityReport.vue'
+import EnhancedRecommendationsCard from '@/components/features/dashboard/EnhancedRecommendationsCard.vue'
+import { MagnifyingGlassIcon, StarIcon, ChartBarIcon, CpuChipIcon } from '@heroicons/vue/24/outline'
+import type { Recommendation } from '@/types'
 
   const router = useRouter()
   const authStore = useAuthStore()
   const stocksStore = useStocksStore()
   const recommendationsStore = useRecommendationsStore()
+  const brokersStore = useBrokersStore()
 
   const strongBuyCount = computed(() => {
     if (!recommendationsStore.recommendations || recommendationsStore.recommendations.length === 0) return 0
@@ -143,13 +153,12 @@
   
   const topRecommendations = computed(() => {
     if (!recommendationsStore.recommendations || recommendationsStore.recommendations.length === 0) return []
-    return recommendationsStore.recommendations
-      .filter((r: Recommendation) => ['Strong Buy', 'Buy'].includes(r.recommendation_type))
+    return [...recommendationsStore.recommendations]
       .sort((a: Recommendation, b: Recommendation) => b.basic_score - a.basic_score)
       .slice(0, 5)
-      .map(rec => ({
+      .map((rec: Recommendation) => ({
         ...rec,
-        scoring_factors: [...rec.scoring_factors]
+        scoring_factors: Array.from(rec.scoring_factors)
       }))
   })
   
@@ -178,7 +187,8 @@
       await Promise.allSettled([
         stocksStore.fetchStocks(),
         stocksStore.fetchStats(),
-        recommendationsStore.fetchRecommendations()
+        recommendationsStore.fetchRecommendations(),
+        brokersStore.fetchBrokerScores()
       ])
     } catch (error) {
       console.error('Error loading dashboard data:', error)
@@ -191,6 +201,18 @@
   
   function handleViewStock(ticker: string) {
     router.push({ name: 'stocks', query: { ticker } })
+  }
+  
+  function handleViewBroker(brokerName: string) {
+    router.push({ name: 'stocks', query: { brokerage: brokerName } })
+  }
+
+  async function refreshRecommendations() {
+    try {
+      await recommendationsStore.fetchRecommendations()
+    } catch (error) {
+      console.error('Error refreshing recommendations:', error)
+    }
   }
   
   function testRealTimeDataAccess() {

@@ -156,7 +156,7 @@ if [[ "$INTEGRATION_TESTS" == "true" ]]; then
     echo "======================"
     echo ""
     
-    run_tests_with_coverage "tests/integration/..." "$COVERAGE_DIR/integration_coverage.out" "Integration Tests"
+    run_tests_with_coverage "./tests/integration/..." "$COVERAGE_DIR/integration_coverage.out" "Integration Tests"
 fi
 
 # Run linter (if enabled)

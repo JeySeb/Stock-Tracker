@@ -37,11 +37,12 @@
         <div 
           class="flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center"
           :class="[
-            available ? 'bg-primary-100 text-primary-600' : 'bg-gray-100 text-gray-400',
+            available ? `${iconBgColor} ${iconTextColor}` : 'bg-gray-100 text-gray-400',
             { 'bg-amber-100 text-amber-600': comingSoon }
           ]"
         >
-          <span class="text-xl">{{ icon }}</span>
+          <component v-if="typeof icon === 'function'" :is="icon" class="h-6 w-6" />
+          <span v-else class="text-xl">{{ icon }}</span>
         </div>
 
         <!-- Text Content -->
@@ -105,8 +106,8 @@ interface Props {
   title: string
   /** Description of the feature */
   description: string
-  /** Emoji or icon to display */
-  icon?: string
+  /** Emoji or icon component to display */
+  icon?: string | any
   /** Whether the feature is available for the current user */
   available?: boolean
   /** Router link if the feature is accessible */
@@ -117,6 +118,10 @@ interface Props {
   comingSoon?: boolean
   /** Whether this is a placeholder for future AI features */
   placeholderForAi?: boolean
+  /** Icon background color class (e.g., 'bg-blue-100') */
+  iconBgColor?: string
+  /** Icon text color class (e.g., 'text-blue-600') */
+  iconTextColor?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -124,7 +129,9 @@ const props = withDefaults(defineProps<Props>(), {
   available: false,
   premiumOnly: false,
   comingSoon: false,
-  placeholderForAi: false
+  placeholderForAi: false,
+  iconBgColor: 'bg-blue-100',
+  iconTextColor: 'text-blue-600'
 })
 
 const emit = defineEmits<{
