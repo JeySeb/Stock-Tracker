@@ -17,7 +17,7 @@ export const useStocksStore = defineStore('stocks', () => {
   const stocks = ref<StockEvent[]>([])
   const totalItems = ref(0)
   const currentPage = ref(1)
-  const itemsPerPage = ref(50)
+  const itemsPerPage = ref(100) // Increased to get more stocks for heat map
   const isLoading = ref(false)
   const filters = ref<StockFilters>({
     sort_by: 'event_time',

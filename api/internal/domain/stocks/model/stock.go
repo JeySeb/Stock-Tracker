@@ -121,6 +121,24 @@ func (s *Stock) GetRecommendationStrength() float64 {
 	return distance / 0.5
 }
 
+// GetDirectionalCertainty returns directional certainty [-1, +1]
+// Positive values = confident buy recommendations
+// Negative values = confident sell recommendations
+// Zero = neutral/uncertain
+func (s *Stock) GetDirectionalCertainty() float64 {
+	_, toScore := s.GetRatingScore()
+	strength := s.GetRecommendationStrength()
+
+	// Apply direction to certainty
+	if toScore > 0.5 {
+		return strength // Positive certainty for buy recommendations
+	} else if toScore < 0.5 {
+		return -strength // Negative certainty for sell recommendations
+	} else {
+		return 0.0 // Neutral
+	}
+}
+
 // Helper function for absolute value
 func abs(x float64) float64 {
 	if x < 0 {

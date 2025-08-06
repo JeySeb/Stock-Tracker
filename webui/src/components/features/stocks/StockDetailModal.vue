@@ -10,10 +10,10 @@
           <div class="flex items-start justify-between">
             <div>
               <h3 class="text-lg leading-6 font-medium text-gray-900">
-                {{ ticker || 'Stock Details' }}
+                {{ stockData?.ticker || ticker || 'Stock Details' }}
               </h3>
               <p class="mt-2 text-sm text-gray-500">
-                Stock event details and history
+                {{ stockData?.company || 'Stock event details and history' }}
               </p>
             </div>
             <button @click="$emit('close')" class="text-gray-400 hover:text-gray-600">
@@ -24,7 +24,87 @@
             </button>
           </div>
           
-          <div class="mt-4 space-y-4">
+          <div v-if="stockData" class="mt-4 space-y-4">
+            <!-- Stock Information -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+              <h4 class="text-sm font-medium text-gray-900 mb-3">Stock Information</h4>
+              <div class="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <span class="text-gray-500">Ticker:</span>
+                  <span class="ml-2 font-medium text-gray-900">{{ stockData.ticker }}</span>
+                </div>
+                <div>
+                  <span class="text-gray-500">Company:</span>
+                  <span class="ml-2 font-medium text-gray-900">{{ stockData.company }}</span>
+                </div>
+                <div>
+                  <span class="text-gray-500">Brokerage:</span>
+                  <span class="ml-2 font-medium text-gray-900">{{ stockData.brokerage }}</span>
+                </div>
+                <div>
+                  <span class="text-gray-500">Action:</span>
+                  <span class="ml-2 font-medium text-gray-900">{{ stockData.action }}</span>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Rating Changes -->
+            <div v-if="stockData.rating_from || stockData.rating_to" class="bg-blue-50 p-4 rounded-lg">
+              <h4 class="text-sm font-medium text-blue-900 mb-3">Rating Changes</h4>
+              <div class="flex items-center space-x-2 text-sm">
+                <span class="text-blue-700">Rating:</span>
+                <span v-if="stockData.rating_from" class="font-medium text-gray-900">{{ stockData.rating_from }}</span>
+                <span v-if="stockData.rating_from && stockData.rating_to" class="text-blue-700">→</span>
+                <span v-if="stockData.rating_to" 
+                      class="font-medium"
+                      :class="getRatingClass(stockData.rating_to)">
+                  {{ stockData.rating_to }}
+                </span>
+              </div>
+            </div>
+            
+            <!-- Price Target Analysis -->
+            <div v-if="stockData.target_from || stockData.target_to" class="bg-green-50 p-4 rounded-lg">
+              <h4 class="text-sm font-medium text-green-900 mb-3">Price Target Analysis</h4>
+              <div class="space-y-2 text-sm">
+                <div class="flex items-center space-x-2">
+                  <span class="text-green-700">Target Price:</span>
+                  <span v-if="stockData.target_from" class="font-medium text-gray-900">${{ stockData.target_from }}</span>
+                  <span v-if="stockData.target_from && stockData.target_to" class="text-green-700">→</span>
+                  <span v-if="stockData.target_to" 
+                        class="font-medium"
+                        :class="getTargetChangeClass(stockData.target_from, stockData.target_to)">
+                    ${{ stockData.target_to }}
+                  </span>
+                </div>
+                <div v-if="stockData.target_from && stockData.target_to" class="text-sm">
+                  <span class="text-green-700">Change:</span>
+                  <span class="ml-2 font-medium"
+                        :class="getTargetChangeClass(stockData.target_from, stockData.target_to)">
+                    {{ formatTargetChange(stockData.target_from, stockData.target_to) }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Event Details -->
+            <div class="bg-purple-50 p-4 rounded-lg">
+              <h4 class="text-sm font-medium text-purple-900 mb-3">Event Details</h4>
+              <div class="space-y-2 text-sm">
+                <div>
+                  <span class="text-purple-700">Event Time:</span>
+                  <span class="ml-2 font-medium text-gray-900">{{ formatDateTime(stockData.event_time) }}</span>
+                </div>
+                <div>
+                  <span class="text-purple-700">Created:</span>
+                  <span class="ml-2 font-medium text-gray-900">{{ formatDateTime(stockData.created_at) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Placeholder when no stock data -->
+          <div v-else class="mt-4 space-y-4">
             <div class="bg-gray-50 p-4 rounded-lg">
               <h4 class="text-sm font-medium text-gray-900 mb-2">Stock Information</h4>
               <p class="text-sm text-gray-600">
@@ -61,13 +141,42 @@
 </template>
 
 <script setup lang="ts">
+import { format } from 'date-fns'
+import type { StockEvent } from '@/types'
+
 interface Props {
   isOpen: boolean
   ticker?: string
+  stockData?: StockEvent | null
 }
 
 defineProps<Props>()
 defineEmits<{
   close: []
 }>()
+
+// Helper Functions
+function getRatingClass(rating: string): string {
+  const ratingLower = rating.toLowerCase()
+  if (ratingLower.includes('buy')) return 'text-emerald-600'
+  if (ratingLower.includes('sell')) return 'text-red-600'
+  return 'text-gray-600'
+}
+
+function getTargetChangeClass(from: number, to: number): string {
+  const change = to - from
+  if (change > 0) return 'text-emerald-600'
+  if (change < 0) return 'text-red-600'
+  return 'text-gray-600'
+}
+
+function formatTargetChange(from: number, to: number): string {
+  const change = to - from
+  const percentage = ((change / from) * 100).toFixed(1)
+  return change > 0 ? `+${percentage}%` : `${percentage}%`
+}
+
+function formatDateTime(date: string): string {
+  return format(new Date(date), 'MMM d, yyyy HH:mm')
+}
 </script>

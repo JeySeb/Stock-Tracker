@@ -25,7 +25,7 @@ export const useRecommendationsStore = defineStore('recommendations', () => {
   // Getters
   const authStore = useAuthStore()
   const maxRecommendations = computed(() => {
-    const limits = { guest: 10, basic: 25, premium: 100 }
+    const limits = { guest: 10, basic: 25, premium: 200 }
     return limits[authStore.userTier]
   })
 
