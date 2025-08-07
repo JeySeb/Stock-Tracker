@@ -1,8 +1,13 @@
 <template>
   <div class="space-y-4">
-    <div class="flex items-center justify-between">
-      <h4 class="text-md font-medium text-gray-900">Most Reliable Brokers</h4>
-      <span class="text-xs text-gray-500">Based on report volume & performance</span>
+    <!-- Header -->
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 class="text-2xl font-bold">Most Reliable Brokers</h1>
+          <p class="opacity-90 mt-1">Tracking of <span class="font-semibold">top performing</span> brokerages</p>
+        </div>
+      </div>
     </div>
 
     <!-- Loading State -->

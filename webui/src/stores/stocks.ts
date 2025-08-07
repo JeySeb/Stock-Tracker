@@ -4,12 +4,45 @@ import { stocksAPI } from '@/api/stocks'
 import type { StockEvent, PaginatedResponse } from '@/types'
 
 export interface StockFilters {
+  // Basic filters
   ticker?: string
   company?: string
   brokerage?: string
   action?: string
   sort_by?: string
   sort_order?: 'asc' | 'desc'
+
+  // Array filters
+  tickers?: string[]
+  companies?: string[]
+  brokerages?: string[]
+  actions?: string[]
+
+  // Rating filters
+  rating_from?: number
+  rating_to?: number
+
+  // Target price filters
+  target_from?: number
+  target_to?: number
+  min_target_change?: number
+  max_target_change?: number
+  has_target_price?: boolean
+
+  // Brokerage score filters
+  min_broker_score?: number
+  max_broker_score?: number
+
+  // Time filters
+  last_hours?: number
+  last_days?: number
+  last_weeks?: number
+  last_months?: number
+
+  // Date filters
+  date_from?: string // RFC3339 date
+  date_to?: string // RFC3339 date
+  date_ranges?: string // Multiple ranges separated by |, formatted as from,to
 }
 
 export const useStocksStore = defineStore('stocks', () => {
@@ -26,7 +59,10 @@ export const useStocksStore = defineStore('stocks', () => {
   const stats = ref<{ total_stocks: number; last_updated: string } | null>(null)
 
   // Getters
-  const totalPages = computed(() => Math.ceil(totalItems.value / itemsPerPage.value))
+  const totalPages = computed(() => {
+    if (totalItems.value === 0) return 1
+    return Math.ceil(totalItems.value / itemsPerPage.value)
+  })
   const hasNextPage = computed(() => currentPage.value < totalPages.value)
   const hasPrevPage = computed(() => currentPage.value > 1)
   const offset = computed(() => (currentPage.value - 1) * itemsPerPage.value)
@@ -89,6 +125,8 @@ export const useStocksStore = defineStore('stocks', () => {
   function setPage(page: number) {
     if (page >= 1 && page <= totalPages.value) {
       currentPage.value = page
+      // Automatically fetch new data when page changes
+      fetchStocks()
     }
   }
 
@@ -100,6 +138,11 @@ export const useStocksStore = defineStore('stocks', () => {
     currentPage.value = 1
   }
 
+  function setItemsPerPage(items: number) {
+    itemsPerPage.value = items
+    currentPage.value = 1 // Reset to first page when changing items per page
+  }
+
   return {
     // State
     stocks: readonly(stocks),
@@ -107,7 +150,7 @@ export const useStocksStore = defineStore('stocks', () => {
     currentPage: readonly(currentPage),
     itemsPerPage: readonly(itemsPerPage),
     isLoading: readonly(isLoading),
-    filters: readonly(filters),
+    filters: filters,
     stats: readonly(stats),
     
     // Getters
@@ -121,6 +164,7 @@ export const useStocksStore = defineStore('stocks', () => {
     fetchStats,
     updateFilters,
     setPage,
-    clearFilters
+    clearFilters,
+    setItemsPerPage
   }
 })

@@ -10,4 +10,6 @@ type StockUseCase interface {
 	GetStocksWithEnhancedFilters(ctx context.Context, filters stockValidation.EnhancedStockFilters) (interface{}, *stockValidation.Pagination, error)
 	GetStocksByTicker(ctx context.Context, ticker string) (interface{}, error)
 	GetStats(ctx context.Context) (interface{}, error)
+	GetUniqueTickers(ctx context.Context) (interface{}, error)
+	GetUniqueCompanies(ctx context.Context) (interface{}, error)
 }

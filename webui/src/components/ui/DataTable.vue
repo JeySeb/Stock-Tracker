@@ -81,6 +81,7 @@
           :total-items="pagination.total_items"
           :has-next="pagination.has_next"
           :has-prev="pagination.has_prev"
+          :items-per-page="pagination.items_per_page"
           @page-change="$emit('pageChange', $event)"
         />
       </div>
@@ -113,6 +114,7 @@
       total_items: number
       has_next: boolean
       has_prev: boolean
+      items_per_page: number
     }
   }
   

@@ -324,3 +324,37 @@ func (h *StockHandler) DeleteStock(w http.ResponseWriter, r *http.Request) {
 	render.Status(r, http.StatusNotImplemented)
 	render.JSON(w, r, map[string]string{"error": "Not implemented"})
 }
+
+// GetUniqueTickers returns all unique tickers from the database
+func (h *StockHandler) GetUniqueTickers(w http.ResponseWriter, r *http.Request) {
+	tickers, err := h.stockUC.GetUniqueTickers(r.Context())
+	if err != nil {
+		h.logger.Error("Failed to get unique tickers", "error", err)
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, map[string]string{"error": "Failed to retrieve unique tickers"})
+		return
+	}
+
+	response := StockResponse{
+		Data: tickers,
+	}
+
+	render.JSON(w, r, response)
+}
+
+// GetUniqueCompanies returns all unique companies from the database
+func (h *StockHandler) GetUniqueCompanies(w http.ResponseWriter, r *http.Request) {
+	companies, err := h.stockUC.GetUniqueCompanies(r.Context())
+	if err != nil {
+		h.logger.Error("Failed to get unique companies", "error", err)
+		render.Status(r, http.StatusInternalServerError)
+		render.JSON(w, r, map[string]string{"error": "Failed to retrieve unique companies"})
+		return
+	}
+
+	response := StockResponse{
+		Data: companies,
+	}
+
+	render.JSON(w, r, response)
+}

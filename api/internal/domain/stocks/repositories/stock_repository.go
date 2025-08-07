@@ -30,6 +30,8 @@ type StockRepository interface {
 	//Analytics queries
 	GetTopMoversByTarget(ctx context.Context, limit int) ([]*stockModel.Stock, error)
 	GetUniqueTickersCount(ctx context.Context) (int, error)
+	GetUniqueTickers(ctx context.Context) ([]string, error)
+	GetUniqueCompanies(ctx context.Context) ([]string, error)
 	GetBrokerageStats(ctx context.Context) ([]BrokerageStats, error)
 }
 

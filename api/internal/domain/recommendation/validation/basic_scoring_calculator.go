@@ -67,7 +67,7 @@ func DefaultScoringConfig() *ScoringConfig {
 		Weights: model.ScoringWeights{
 			BrokerFrequency:      0.15,
 			TargetMovement:       0.30,
-			RatingChange:         0.50,
+			RatingChange:         0.0,
 			Recency:              0.30,
 			Consensus:            0.15, // Reduced from 0.15 - directional consensus
 			Certainty:            0.20, // Non-directional strength

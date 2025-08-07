@@ -99,3 +99,31 @@ func (uc *StockQueryUseCase) GetStocksWithEnhancedFilters(ctx context.Context, f
 	uc.logger.Info("Successfully retrieved stocks with enhanced filters", "count", len(stocks), "total", pagination.TotalItems)
 	return stocks, pagination, nil
 }
+
+// GetUniqueTickers returns all unique tickers from the database
+func (uc *StockQueryUseCase) GetUniqueTickers(ctx context.Context) (interface{}, error) {
+	uc.logger.Info("Getting unique tickers")
+
+	tickers, err := uc.stockRepo.GetUniqueTickers(ctx)
+	if err != nil {
+		uc.logger.Error("Failed to get unique tickers from repository", "error", err)
+		return nil, fmt.Errorf("failed to retrieve unique tickers: %w", err)
+	}
+
+	uc.logger.Info("Successfully retrieved unique tickers", "count", len(tickers))
+	return tickers, nil
+}
+
+// GetUniqueCompanies returns all unique companies from the database
+func (uc *StockQueryUseCase) GetUniqueCompanies(ctx context.Context) (interface{}, error) {
+	uc.logger.Info("Getting unique companies")
+
+	companies, err := uc.stockRepo.GetUniqueCompanies(ctx)
+	if err != nil {
+		uc.logger.Error("Failed to get unique companies from repository", "error", err)
+		return nil, fmt.Errorf("failed to retrieve unique companies: %w", err)
+	}
+
+	uc.logger.Info("Successfully retrieved unique companies", "count", len(companies))
+	return companies, nil
+}

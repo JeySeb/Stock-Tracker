@@ -229,6 +229,8 @@ func setupRouter(
 				r.Use(rateLimiter.RateLimit)       // Tier-based rate limiting
 				r.Get("/", stockHandler.GetStocks)
 				r.Get("/enhanced", stockHandler.GetStocksWithEnhancedFilters)
+				r.Get("/tickers", stockHandler.GetUniqueTickers)
+				r.Get("/companies", stockHandler.GetUniqueCompanies)
 				r.Get("/{id}", stockHandler.GetStockByID)
 				r.Get("/{ticker}", stockHandler.GetStockByTicker)
 				r.Get("/stats", stockHandler.GetStats)

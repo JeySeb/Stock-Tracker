@@ -6,7 +6,7 @@
         </span>
       </div>
       
-      <div class="flex items-center space-x-2">
+      <div v-if="visiblePages.length > 0" class="flex items-center space-x-2">
         <button
           :disabled="!hasPrev"
           @click="$emit('pageChange', currentPage - 1)"
@@ -53,6 +53,7 @@
     totalItems: number
     hasNext: boolean
     hasPrev: boolean
+    itemsPerPage: number
   }
   
   const props = defineProps<Props>()
@@ -62,11 +63,11 @@
   }>()
   
   const startItem = computed(() => {
-    return ((props.currentPage - 1) * 50) + 1
+    return ((props.currentPage - 1) * props.itemsPerPage) + 1
   })
   
   const endItem = computed(() => {
-    return Math.min(props.currentPage * 50, props.totalItems)
+    return Math.min(props.currentPage * props.itemsPerPage, props.totalItems)
   })
   
   const visiblePages = computed(() => {
@@ -74,24 +75,33 @@
     const current = props.currentPage
     const total = props.totalPages
     
+    // If there's only one page, don't show pagination
+    if (total <= 1) {
+      return []
+    }
+    
     if (total <= 7) {
+      // Show all pages if there are 7 or fewer
       for (let i = 1; i <= total; i++) {
         pages.push(i)
       }
     } else {
       if (current <= 4) {
+        // Show first 5 pages + ellipsis + last page
         for (let i = 1; i <= 5; i++) {
           pages.push(i)
         }
         pages.push('...')
         pages.push(total)
       } else if (current >= total - 3) {
+        // Show first page + ellipsis + last 5 pages
         pages.push(1)
         pages.push('...')
         for (let i = total - 4; i <= total; i++) {
           pages.push(i)
         }
       } else {
+        // Show first page + ellipsis + current-1, current, current+1 + ellipsis + last page
         pages.push(1)
         pages.push('...')
         for (let i = current - 1; i <= current + 1; i++) {

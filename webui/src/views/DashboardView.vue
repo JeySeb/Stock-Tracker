@@ -7,30 +7,37 @@
         :events="recentStockEvents"
         :loading="stocksStore.isLoading"
       />
-  
       <!-- Enhanced Analytics Section -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <!-- Enhanced Stock Events (2/3 width) -->
-        <div class="lg:col-span-2 bg-white p-6 rounded-lg shadow-sm border border-gray-200">
-          <div class="flex items-center justify-between mb-6">
-            <h3 class="text-lg font-semibold text-gray-900">Recent Stock Events</h3>
-            <div class="flex items-center gap-2">
-              <span v-if="stocksStore.isLoading" class="animate-pulse bg-gray-200 h-6 w-16 rounded"></span>
-              <span v-else class="text-sm font-medium text-gray-600">
-                Total: {{ totalStocksCount?.toLocaleString() ?? '-' }}
-              </span>
+        <div class="lg:col-span-2">
+          <!-- Header -->
+          <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+              <div>
+                <h1 class="text-2xl font-bold">Recent Stock Events</h1>
+                <p class="opacity-90 mt-1">Tracking of <span class="font-semibold">Stocks Market</span> activity</p>
+              </div>
+              <div class="flex items-center gap-2">
+                <span v-if="stocksStore.isLoading" class="animate-pulse bg-white/20 h-6 w-16 rounded"></span>
+                <span v-else class="text-sm font-medium text-white">
+                  Total: {{ totalStocksCount?.toLocaleString() ?? '-' }}
+                </span>
+              </div>
             </div>
           </div>
           
-          <EnhancedStockEvents
-            :events="recentStockEvents"
-            :loading="stocksStore.isLoading"
-            @view-stock="handleViewStock"
-          />
+          <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+            <EnhancedStockEvents
+              :events="recentStockEvents"
+              :loading="stocksStore.isLoading"
+              @view-stock="handleViewStock"
+            />
+          </div>
         </div>
 
         <!-- Broker Credibility Report (1/3 width) -->
-        <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200">
+        <div>
           <BrokerCredibilityReport
             :brokers="brokersStore.topBrokersByReportCount"
             :loading="brokersStore.isLoading"

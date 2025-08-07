@@ -1,10 +1,11 @@
 <template>
   <div 
-    class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium"
-    :class="[tierStyles[tier].bg, tierStyles[tier].text]"
+    class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium transition-colors"
+    :class="[tierStyles[tier].bg, tierStyles[tier].text, tierStyles[tier].border]"
   >
-    <span class="mr-1">{{ tierStyles[tier].icon }}</span>
-    {{ formatTier }}
+    <span class="mr-1 text-xs">{{ tierStyles[tier].icon }}</span>
+    <span class="hidden sm:inline">{{ formatTier }}</span>
+    <span class="sm:hidden">{{ tierStyles[tier].short }}</span>
   </div>
 </template>
 
@@ -22,19 +23,25 @@ const props = defineProps<Props>()
 // Tier-specific styles and configurations
 const tierStyles = {
   guest: {
-    bg: 'bg-gray-100',
-    text: 'text-gray-700',
-    icon: '👋'
+    bg: 'bg-gray-50',
+    text: 'text-gray-600',
+    border: 'border border-gray-200',
+    icon: '👋',
+    short: 'Free'
   },
   basic: {
-    bg: 'bg-blue-100',
+    bg: 'bg-blue-50',
     text: 'text-blue-700',
-    icon: '⭐'
+    border: 'border border-blue-200',
+    icon: '⭐',
+    short: 'Basic'
   },
   premium: {
-    bg: 'bg-primary-100',
+    bg: 'bg-gradient-to-r from-primary-50 to-blue-50',
     text: 'text-primary-700',
-    icon: '✨'
+    border: 'border border-primary-200',
+    icon: '✨',
+    short: 'Pro'
   }
 } as const
 
@@ -46,11 +53,15 @@ const formatTier = computed(() => {
 
 <style scoped>
 /* Additional tier-specific styles can be added here if needed */
-.bg-primary-100 {
-  @apply bg-blue-100;
+.bg-primary-50 {
+  @apply bg-blue-50;
 }
 
 .text-primary-700 {
   @apply text-blue-700;
+}
+
+.border-primary-200 {
+  @apply border-blue-200;
 }
 </style>

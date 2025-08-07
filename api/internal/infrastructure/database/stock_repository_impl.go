@@ -463,6 +463,66 @@ func (r *stockRepository) GetUniqueTickersCount(ctx context.Context) (int, error
 	return count, nil
 }
 
+// GetUniqueTickers returns all unique tickers from the database.
+func (r *stockRepository) GetUniqueTickers(ctx context.Context) ([]string, error) {
+	query := `SELECT DISTINCT ticker FROM stocks ORDER BY ticker`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		r.logger.Error("Failed to get unique tickers", "error", err)
+		return nil, fmt.Errorf("failed to get unique tickers: %w", err)
+	}
+	defer rows.Close()
+
+	var tickers []string
+	for rows.Next() {
+		var ticker string
+		if err := rows.Scan(&ticker); err != nil {
+			r.logger.Error("Failed to scan ticker", "error", err)
+			return nil, fmt.Errorf("failed to scan ticker: %w", err)
+		}
+		tickers = append(tickers, ticker)
+	}
+
+	if err := rows.Err(); err != nil {
+		r.logger.Error("Error iterating over tickers", "error", err)
+		return nil, fmt.Errorf("error iterating over tickers: %w", err)
+	}
+
+	r.logger.Debug("Retrieved unique tickers", "count", len(tickers))
+	return tickers, nil
+}
+
+// GetUniqueCompanies returns all unique companies from the database.
+func (r *stockRepository) GetUniqueCompanies(ctx context.Context) ([]string, error) {
+	query := `SELECT DISTINCT company FROM stocks ORDER BY company`
+
+	rows, err := r.db.Query(ctx, query)
+	if err != nil {
+		r.logger.Error("Failed to get unique companies", "error", err)
+		return nil, fmt.Errorf("failed to get unique companies: %w", err)
+	}
+	defer rows.Close()
+
+	var companies []string
+	for rows.Next() {
+		var company string
+		if err := rows.Scan(&company); err != nil {
+			r.logger.Error("Failed to scan company", "error", err)
+			return nil, fmt.Errorf("failed to scan company: %w", err)
+		}
+		companies = append(companies, company)
+	}
+
+	if err := rows.Err(); err != nil {
+		r.logger.Error("Error iterating over companies", "error", err)
+		return nil, fmt.Errorf("error iterating over companies: %w", err)
+	}
+
+	r.logger.Debug("Retrieved unique companies", "count", len(companies))
+	return companies, nil
+}
+
 // GetBrokerageStats returns statistics for each brokerage.
 func (r *stockRepository) GetBrokerageStats(ctx context.Context) ([]stockRepos.BrokerageStats, error) {
 	query := `

@@ -1,20 +1,25 @@
 <template>
   <div class="bg-white p-6 rounded-lg shadow-sm border border-gray-200 space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
-      <h3 class="text-lg font-semibold text-gray-900">Your Active Recommendations</h3>
-      <div class="flex items-center gap-3">
-        <!-- Rate Limit Indicator -->
-        <div v-if="rateLimitRemaining !== undefined" class="flex items-center space-x-1">
-          <div class="w-2 h-2 rounded-full" :class="rateLimitRemaining > 10 ? 'bg-emerald-500' : rateLimitRemaining > 5 ? 'bg-yellow-500' : 'bg-red-500'"></div>
-          <span class="text-xs text-gray-500">{{ rateLimitRemaining }} left</span>
+    <div class="bg-gradient-to-r from-blue-600 to-indigo-700 p-6 text-white">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 class="text-2xl font-bold">Your Active Recommendations</h1>
+          <p class="opacity-90 mt-1">Real‑time tracking of <span class="font-semibold">personalized</span> stock insights</p>
         </div>
-        
-        <!-- Total Count -->
-        <span v-if="!loading" class="text-sm font-medium text-gray-600">
-          {{ activeCount?.toLocaleString() ?? '-' }} Active
-        </span>
-        <span v-else class="animate-pulse bg-gray-200 h-6 w-16 rounded"></span>
+        <div class="flex items-center gap-3">
+          <!-- Rate Limit Indicator -->
+          <div v-if="rateLimitRemaining !== undefined" class="flex items-center space-x-1">
+            <div class="w-2 h-2 rounded-full" :class="rateLimitRemaining > 10 ? 'bg-emerald-500' : rateLimitRemaining > 5 ? 'bg-yellow-500' : 'bg-red-500'"></div>
+            <span class="text-sm text-white opacity-90">{{ rateLimitRemaining }} left</span>
+          </div>
+          
+          <!-- Total Count -->
+          <span v-if="!loading" class="text-sm font-medium text-white">
+            {{ activeCount?.toLocaleString() ?? '-' }} Active
+          </span>
+          <span v-else class="animate-pulse bg-white/20 h-6 w-16 rounded"></span>
+        </div>
       </div>
     </div>
 

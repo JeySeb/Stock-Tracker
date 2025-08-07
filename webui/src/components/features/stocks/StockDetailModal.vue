@@ -101,6 +101,56 @@
                 </div>
               </div>
             </div>
+
+            <!-- Stock Recommendation -->
+            <div v-if="recommendation" class="bg-amber-50 p-4 rounded-lg">
+              <h4 class="text-sm font-medium text-amber-900 mb-3">Stock Recommendation</h4>
+              <div class="space-y-3 text-sm">
+                <div class="flex items-center justify-between">
+                  <span class="text-amber-700">Recommendation:</span>
+                  <span class="font-medium" :class="getRecommendationClass(recommendation.recommendation_type)">
+                    {{ recommendation.recommendation_type }}
+                  </span>
+                </div>
+                
+                <div class="flex items-center justify-between">
+                  <span class="text-amber-700">Basic Score:</span>
+                  <span class="font-medium text-gray-900">{{ (recommendation.basic_score * 100).toFixed(1) }}%</span>
+                </div>
+
+                <div class="flex items-center justify-between">
+                  <span class="text-amber-700">Confidence:</span>
+                  <span class="font-medium text-gray-900">{{ (recommendation.confidence * 100).toFixed(1) }}%</span>
+                </div>
+
+                <div class="flex items-center justify-between">
+                  <span class="text-amber-700">Latest Target Price:</span>
+                  <span class="font-medium text-gray-900">${{ recommendation.latest_target_price }}</span>
+                </div>
+
+                <div class="mt-4">
+                  <h5 class="text-sm font-medium text-amber-900 mb-2">Scoring Factors</h5>
+                  <div class="space-y-2">
+                    <div v-for="factor in recommendation.scoring_factors" :key="factor.name" 
+                         class="flex items-center justify-between text-xs">
+                      <span class="text-amber-700">{{ factor.name }}:</span>
+                      <div class="flex items-center space-x-2">
+                        <span class="font-medium text-gray-900">
+                          {{ (factor.score * 100).toFixed(1) }}%
+                        </span>
+                        <span class="text-gray-500">({{ factor.explanation }})</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div v-else-if="isLoadingRecommendation" class="bg-amber-50 p-4 rounded-lg">
+              <div class="flex items-center justify-center space-x-2">
+                <span class="text-amber-700">Loading recommendation...</span>
+              </div>
+            </div>
           </div>
 
           <!-- Placeholder when no stock data -->
@@ -142,7 +192,9 @@
 
 <script setup lang="ts">
 import { format } from 'date-fns'
-import type { StockEvent } from '@/types'
+import type { StockEvent, Recommendation } from '@/types'
+import { recommendationsAPI } from '@/api/recommendations'
+import { ref, watch } from 'vue'
 
 interface Props {
   isOpen: boolean
@@ -150,10 +202,30 @@ interface Props {
   stockData?: StockEvent | null
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 defineEmits<{
   close: []
 }>()
+
+const recommendation = ref<Recommendation | null>(null)
+const isLoadingRecommendation = ref(false)
+
+watch(() => props.isOpen, async (isOpen) => {
+  if (isOpen && props.ticker) {
+    isLoadingRecommendation.value = true
+    try {
+      const response = await recommendationsAPI.getRecommendationByTicker(props.ticker)
+      recommendation.value = response.data
+    } catch (error) {
+      console.error('Error fetching recommendation:', error)
+      recommendation.value = null
+    } finally {
+      isLoadingRecommendation.value = false
+    }
+  } else {
+    recommendation.value = null
+  }
+})
 
 // Helper Functions
 function getRatingClass(rating: string): string {
@@ -178,5 +250,13 @@ function formatTargetChange(from: number, to: number): string {
 
 function formatDateTime(date: string): string {
   return format(new Date(date), 'MMM d, yyyy HH:mm')
+}
+
+function getRecommendationClass(type: string): string {
+  const typeLower = type.toLowerCase()
+  if (typeLower.includes('buy') || typeLower.includes('strong buy')) return 'text-emerald-600'
+  if (typeLower.includes('sell') || typeLower.includes('strong sell')) return 'text-red-600'
+  if (typeLower.includes('hold') || typeLower.includes('neutral')) return 'text-amber-600'
+  return 'text-gray-600'
 }
 </script>
