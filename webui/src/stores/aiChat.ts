@@ -1,13 +1,34 @@
 import { defineStore } from 'pinia'
 import { ref, computed, readonly } from 'vue'
 import { useAuthStore } from './auth'
+import { aiChatAPI, type EnhancedChatMessage } from '@/api/aiChat'
 
+// Re-export for backward compatibility
+export interface ChatMessage extends EnhancedChatMessage {}
+
+// Enhanced message interface
 export interface ChatMessage {
   id: string
   type: 'user' | 'assistant' | 'system'
   content: string
   timestamp: Date
+  messageType: 'text' | 'interactive_button' | 'interactive_url'
   isTyping?: boolean
+  
+  // For interactive buttons
+  buttons?: Array<{
+    id: string
+    title: string
+    action: () => void
+  }>
+  
+  // For interactive URLs
+  urlAction?: {
+    headerText: string
+    buttonText: string
+    url: string
+  }
+  
   metadata?: {
     ticker?: string
     actionType?: 'analysis' | 'recommendation' | 'general'
@@ -75,8 +96,9 @@ export const useAIChatStore = defineStore('aiChat', () => {
       messages: [{
         id: crypto.randomUUID(),
         type: 'system',
-        content: 'Hello! I\'m your AI investment assistant. I can help you analyze stocks, understand market trends, and provide personalized recommendations. What would you like to know?',
-        timestamp: new Date()
+        content: '¡Hola! Soy Mia, tu asistente de inversiones. ¿En qué puedo ayudarte?',
+        timestamp: new Date(),
+        messageType: 'text'
       }]
     }
 
@@ -111,6 +133,7 @@ export const useAIChatStore = defineStore('aiChat', () => {
       type: 'user',
       content,
       timestamp: new Date(),
+      messageType: 'text',
       metadata
     }
 
@@ -121,18 +144,20 @@ export const useAIChatStore = defineStore('aiChat', () => {
     isTyping.value = true
 
     try {
-      // TODO: Replace with actual AI API call
-      const response = await simulateAIResponse(content)
+      // Use the new LangGraph-Interpreter API
+      const authStore = useAuthStore()
+      const userId = authStore.user?.id || 'anonymous'
       
-      const assistantMessage: ChatMessage = {
-        id: crypto.randomUUID(),
-        type: 'assistant',
-        content: response.content,
-        timestamp: new Date(),
-        metadata: response.metadata
-      }
-
-      currentSession.value.messages.push(assistantMessage)
+      const response = await aiChatAPI.sendMessage(content, userId)
+      
+      // Process and transform API response messages
+      const enhancedMessages = aiChatAPI.processAPIResponse(response, handleButtonClick)
+      
+      // Add all assistant messages to the session
+      enhancedMessages.forEach(message => {
+        currentSession.value!.messages.push(message)
+      })
+      
       currentSession.value.lastMessageAt = new Date()
 
       // Update session title if it's the first meaningful exchange
@@ -147,7 +172,8 @@ export const useAIChatStore = defineStore('aiChat', () => {
         id: crypto.randomUUID(),
         type: 'assistant',
         content: 'I apologize, but I\'m having trouble processing your request right now. Please try again later.',
-        timestamp: new Date()
+        timestamp: new Date(),
+        messageType: 'text'
       }
 
       currentSession.value.messages.push(errorMessage)
@@ -157,86 +183,17 @@ export const useAIChatStore = defineStore('aiChat', () => {
     }
   }
 
-  // Simulate AI response (replace with actual API call)
-  async function simulateAIResponse(userMessage: string) {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 1000 + Math.random() * 2000))
-
-    const lowerMessage = userMessage.toLowerCase()
-
-    if (lowerMessage.includes('aapl') || lowerMessage.includes('apple')) {
-      return {
-        content: `Based on my analysis of Apple (AAPL), here's what I found:
-
-📊 **Current Analysis:**
-- Recent price target increases from major brokerages
-- Strong institutional buying pressure
-- Q4 earnings beat expectations by 12%
-
-💡 **Key Insights:**
-- 73% of brokerages rate it as "Buy" or "Strong Buy"
-- Average price target: $185 (current: $175)
-- Risk level: Moderate
-
-🔮 **My Recommendation:**
-Consider this stock for your portfolio. The fundamentals look strong, and technical indicators suggest continued upward momentum.
-
-Would you like me to analyze any specific aspects like competitors, valuation metrics, or market sentiment?`,
-        metadata: {
-          ticker: 'AAPL',
-          actionType: 'analysis' as const,
-          confidence: 0.85
-        }
-      }
-    }
-
-    if (lowerMessage.includes('recommendation') || lowerMessage.includes('suggest')) {
-      return {
-        content: `Here are my top 3 stock recommendations based on current market conditions:
-
-🥇 **Microsoft (MSFT)** - Strong Buy
-- AI growth story with solid fundamentals
-- Price target: $420 (upside: 15%)
-- Risk: Low
-
-🥈 **NVIDIA (NVDA)** - Buy
-- Leading AI chip manufacturer
-- Price target: $520 (upside: 22%)
-- Risk: Moderate-High
-
-🥉 **Amazon (AMZN)** - Buy
-- AWS growth and retail recovery
-- Price target: $165 (upside: 18%)
-- Risk: Moderate
-
-These recommendations are based on broker consensus, technical analysis, and my proprietary sentiment scoring. Would you like detailed analysis on any of these?`,
-        metadata: {
-          actionType: 'recommendation' as const,
-          confidence: 0.78
-        }
-      }
-    }
-
-    // Default response
-    return {
-      content: `I understand you're asking about "${userMessage}". Let me help you with that.
-
-As your AI investment assistant, I can provide insights on:
-• Stock analysis and recommendations
-• Market trend interpretation
-• Portfolio optimization suggestions
-• Risk assessment
-• Earnings analysis
-
-Could you be more specific about what you'd like to know? For example:
-- "Analyze TSLA stock"
-- "What are the best tech stocks right now?"
-- "Should I buy or sell Netflix?"`,
-      metadata: {
-        actionType: 'general' as const
-      }
-    }
+  // Handle button clicks from interactive messages
+  function handleButtonClick(buttonId: string, buttonTitle: string) {
+    // Send the button selection as a new message
+    sendMessage(buttonTitle, {
+      actionType: 'general',
+      buttonId,
+      isButtonResponse: true
+    } as any)
   }
+
+
 
   function generateSessionTitle(firstMessage: string): string {
     const maxLength = 30
@@ -268,6 +225,9 @@ Could you be more specific about what you'd like to know? For example:
             type: string
             content: string
             timestamp: string
+            messageType?: string
+            buttons?: Array<{ id: string; title: string }>
+            urlAction?: { headerText: string; buttonText: string; url: string }
             metadata?: ChatMessage['metadata']
           }>
         }>
@@ -278,7 +238,13 @@ Could you be more specific about what you'd like to know? For example:
           messages: session.messages.map((message) => ({
             ...message,
             type: message.type as 'user' | 'assistant' | 'system',
-            timestamp: new Date(message.timestamp)
+            messageType: message.messageType as 'text' | 'interactive_button' | 'interactive_url' || 'text',
+            timestamp: new Date(message.timestamp),
+            // Restore button actions if they exist
+            buttons: message.buttons?.map(btn => ({
+              ...btn,
+              action: () => handleButtonClick(btn.id, btn.title)
+            }))
           }))
         }))
         
@@ -315,6 +281,7 @@ Could you be more specific about what you'd like to know? For example:
     createNewSession,
     switchToSession,
     deleteSession,
-    sendMessage
+    sendMessage,
+    handleButtonClick
   }
 })

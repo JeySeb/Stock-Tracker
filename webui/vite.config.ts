@@ -21,6 +21,11 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
+      },
+      '/chat': {
+        target: 'http://0.0.0.0:8000',
+        changeOrigin: true,
+        secure: false,
       }
     }
   }

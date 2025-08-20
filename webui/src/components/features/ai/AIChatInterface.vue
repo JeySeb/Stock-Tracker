@@ -65,46 +65,11 @@
   
         <!-- Messages -->
         <div ref="messagesContainer" class="flex-1 overflow-y-auto p-4 space-y-4">
-          <div
+          <ChatMessage
             v-for="message in aiChatStore.currentMessages"
             :key="message.id"
-            :class="[
-              'flex',
-              message.type === 'user' ? 'justify-end' : 'justify-start'
-            ]"
-          >
-            <div
-              :class="[
-                'max-w-[80%] rounded-lg px-4 py-2',
-                message.type === 'user'
-                  ? 'bg-primary-600 text-white'
-                  : message.type === 'system'
-                  ? 'bg-gray-100 text-gray-700 text-sm'
-                  : 'bg-gray-100 text-gray-900'
-              ]"
-            >
-              <div
-                v-if="message.type === 'assistant'"
-                v-html="formatAssistantMessage(message.content)"
-                class="prose prose-sm max-w-none"
-              />
-              <div v-else>{{ message.content }}</div>
-              
-              <div
-                v-if="message.metadata?.ticker"
-                class="mt-2 text-xs opacity-75"
-              >
-                📊 {{ message.metadata.ticker }}
-                <span v-if="message.metadata.confidence">
-                  • Confidence: {{ (message.metadata.confidence * 100).toFixed(0) }}%
-                </span>
-              </div>
-              
-              <div class="text-xs opacity-75 mt-1">
-                {{ formatTime(message.timestamp) }}
-              </div>
-            </div>
-          </div>
+            :message="message"
+          />
   
           <!-- Typing Indicator -->
           <div v-if="aiChatStore.isTyping" class="flex justify-start">
@@ -158,7 +123,7 @@
   import { ref, nextTick, watch } from 'vue'
   import { XMarkIcon, Bars3Icon, TrashIcon, PaperAirplaneIcon } from '@heroicons/vue/24/outline'
   import { useAIChatStore } from '@/stores/aiChat'
-  import { format } from 'date-fns'
+  import ChatMessage from './ChatMessage.vue'
   
   const aiChatStore = useAIChatStore()
   const newMessage = ref('')
@@ -166,10 +131,10 @@
   const showSessionMenu = ref(false)
   
   const quickActions = [
-    { text: 'Market overview today' },
+    { text: 'Top 8 recent stocks events' },
     { text: 'Top 5 stock recommendations' },
-    { text: 'Analyze AAPL' },
-    { text: 'Best tech stocks to buy' }
+    { text: 'Give me the Analyze for AAPL' },
+    { text: 'What do you recommend according to financial news?' }
   ]
   
   const handleSendMessage = async () => {
@@ -182,17 +147,7 @@
     scrollToBottom()
   }
   
-  const formatAssistantMessage = (content: string): string => {
-    return content
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/\n/g, '<br>')
-      .replace(/📊|💡|🔮|🥇|🥈|🥉|•/g, '<span class="inline-block mr-1">$&</span>')
-  }
-  
-  const formatTime = (timestamp: Date): string => {
-    return format(timestamp, 'HH:mm')
-  }
+
   
   const scrollToBottom = () => {
     nextTick(() => {
