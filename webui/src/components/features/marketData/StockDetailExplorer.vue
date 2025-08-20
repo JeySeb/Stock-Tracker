@@ -63,31 +63,13 @@
           </div>
         </div>
 
-        <!-- Period Selector -->
-        <div class="flex items-center space-x-4">
-          <span class="text-sm font-medium text-gray-700">Trend Period:</span>
-          <div class="flex space-x-2">
-            <button
-              v-for="period in periods"
-              :key="period.value"
-              @click="handlePeriodChange(period.value)"
-              :class="[
-                selectedPeriod === period.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300',
-                'px-3 py-1 rounded-md text-sm font-medium'
-              ]"
-            >
-              {{ period.label }}
-            </button>
-          </div>
-        </div>
+        <!-- Trend period controls removed -->
 
         <!-- Trend Chart Placeholder -->
         <div v-if="selectedStockTrend" class="bg-gray-50 p-6 rounded-lg border border-gray-200">
           <div class="flex items-center justify-between mb-4">
             <h5 class="text-lg font-medium text-gray-900">Price Trend</h5>
-            <span class="text-sm text-gray-500">{{ selectedPeriod }} period</span>
+            <span class="text-sm text-gray-500">1W period</span>
           </div>
           <div class="h-64 bg-white rounded border border-gray-200 flex items-center justify-center">
             <div class="text-center">
@@ -166,6 +148,7 @@ interface Props {
   isLoadingRecommendation?: boolean
   error?: string | null
   hasFeature: (feature: string) => boolean
+  initialTicker?: string
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -178,19 +161,10 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   search: [ticker: string]
-  periodChange: [period: string]
 }>()
 
 // Local state
-const searchTicker = ref('')
-const selectedPeriod = ref('1d')
-
-const periods = [
-  { value: '1d', label: '1D' },
-  { value: '1w', label: '1W' },
-  { value: '1m', label: '1M' },
-  { value: '3m', label: '3M' }
-]
+const searchTicker = ref(props.initialTicker ? props.initialTicker.toUpperCase() : '')
 
 // Methods
 function handleSearch() {
@@ -199,10 +173,7 @@ function handleSearch() {
   }
 }
 
-function handlePeriodChange(period: string) {
-  selectedPeriod.value = period
-  emit('periodChange', period)
-}
+// Period controls removed
 
 function formatPrice(price?: number): string {
   if (price === undefined || price === null) return 'N/A'

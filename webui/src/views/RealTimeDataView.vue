@@ -6,7 +6,7 @@
         <div>
           <h1 class="text-2xl font-bold">Real-Time Market Data</h1>
           <p class="mt-2 text-blue-100">
-            Live market insights, performance tracking, and risk analysis
+            Live market insights and performance tracking
           </p>
         </div>
         <div class="flex items-center space-x-4">
@@ -48,7 +48,7 @@
     />
 
     <!-- Main Content Grid -->
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- Left Sidebar: Performance Leaders -->
       <div class="lg:col-span-1">
         <PerformanceLeaders
@@ -70,19 +70,8 @@
           :is-loading-recommendation="isLoadingStockRecommendation"
           :error="error"
           :has-feature="hasFeature"
+          initial-ticker="WELL"
           @search="handleStockSearch"
-          @period-change="handlePeriodChange"
-        />
-      </div>
-
-      <!-- Right Sidebar: Risk Analysis -->
-      <div class="lg:col-span-1">
-        <RiskAnalysisHub
-          :high-risk-stocks="highRiskStocks"
-          :low-risk-stocks="lowRiskStocks"
-          :most-volatile-stocks="mostVolatileStocks"
-          :loading="isLoadingRiskAnalysis"
-          @stock-click="handleStockClick"
         />
       </div>
     </div>
@@ -115,7 +104,6 @@ import { useMarketDataStore } from '@/stores/marketData'
 import {
   MarketSummaryCards,
   PerformanceLeaders,
-  RiskAnalysisHub,
   StockDetailExplorer,
   ActiveStocksMonitor
 } from '@/components/features/marketData'
@@ -124,15 +112,12 @@ const marketDataStore = useMarketDataStore()
 
 // Local state
 const selectedTicker = ref<string | null>(null)
-const selectedPeriod = ref('1d')
+// Deprecated local period handling removed with simplified trend controls
 
 // Computed properties
 const marketSummary = computed(() => marketDataStore.marketSummary)
 const topPerformers = computed(() => marketDataStore.topPerformers)
 const worstPerformers = computed(() => marketDataStore.worstPerformers)
-const highRiskStocks = computed(() => marketDataStore.highRiskStocks)
-const lowRiskStocks = computed(() => marketDataStore.lowRiskStocks)
-const mostVolatileStocks = computed(() => marketDataStore.mostVolatileStocks)
 const mostActiveStocks = computed(() => marketDataStore.mostActiveStocks)
 const selectedStock = computed(() => marketDataStore.selectedStock)
 const selectedStockTrend = computed(() => marketDataStore.selectedStockTrend)
@@ -141,7 +126,6 @@ const selectedStockRecommendation = computed(() => marketDataStore.selectedStock
 // Loading states
 const isLoadingSummary = computed(() => marketDataStore.isLoadingSummary)
 const isLoadingPerformers = computed(() => marketDataStore.isLoadingPerformers)
-const isLoadingRiskAnalysis = computed(() => marketDataStore.isLoadingRiskAnalysis)
 const isLoadingActiveStocks = computed(() => marketDataStore.isLoadingActiveStocks)
 const isLoadingStockAnalysis = computed(() => marketDataStore.isLoadingStockAnalysis)
 const isLoadingStockTrend = computed(() => marketDataStore.isLoadingStockTrend)
@@ -150,7 +134,6 @@ const isLoadingStockRecommendation = computed(() => marketDataStore.isLoadingSto
 const isAnyLoading = computed(() => 
   isLoadingSummary.value || 
   isLoadingPerformers.value || 
-  isLoadingRiskAnalysis.value || 
   isLoadingActiveStocks.value ||
   isLoadingStockAnalysis.value ||
   isLoadingStockTrend.value ||
@@ -194,18 +177,12 @@ async function handleStockSearch(ticker: string) {
   try {
     await Promise.allSettled([
       marketDataStore.fetchStockAnalysis(ticker),
-      marketDataStore.fetchStockTrend(ticker, selectedPeriod.value),
+      // Use a consistent default period for trend
+      marketDataStore.fetchStockTrend(ticker, '1w'),
       marketDataStore.fetchStockRecommendation(ticker)
     ])
   } catch (err) {
     console.error('Failed to fetch stock data:', err)
-  }
-}
-
-async function handlePeriodChange(period: string) {
-  selectedPeriod.value = period
-  if (selectedTicker.value) {
-    await marketDataStore.fetchStockTrend(selectedTicker.value, period)
   }
 }
 
@@ -219,6 +196,9 @@ onMounted(async () => {
   
   try {
     await marketDataStore.fetchAllMarketData('1d')
+    // Preload default explorer content
+    selectedTicker.value = 'WELL'
+    await handleStockSearch('WELL')
   } catch (err) {
     console.error('Failed to load market data:', err)
   }

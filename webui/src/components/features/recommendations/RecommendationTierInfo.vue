@@ -9,7 +9,6 @@
       <div class="ml-4">
         <h3 class="text-sm font-medium text-blue-900">{{ userTier.charAt(0).toUpperCase() + userTier.slice(1) }} Tier</h3>
         <p class="text-sm text-blue-700">
-          {{ rateLimitRemaining }} requests remaining | 
           Up to {{ maxRecommendations }} recommendations
         </p>
       </div>

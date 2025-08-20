@@ -133,7 +133,7 @@
   const quickActions = [
     { text: 'Top 8 recent stocks events' },
     { text: 'Top 5 stock recommendations' },
-    { text: 'Give me the Analyze for AAPL' },
+    { text: 'Which are the top 5 most relevant brokers?' },
     { text: 'What do you recommend according to financial news?' }
   ]
   
