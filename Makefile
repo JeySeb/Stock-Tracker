@@ -237,6 +237,64 @@ backend-test-quick: ## Run quick tests (no race detection, no coverage)
 	@echo "⚡ Running quick tests..."
 	go test -short ./tests/unit/...
 
+##@ Ingestor
+ingestor-run: ## Run ingestor scheduler (stocks + market data)
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi && \
+	go run cmd/ingestor/main.go
+
+ingestor-run-once: ## Run ingestor once (stocks + market data) and exit
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi && \
+	go run cmd/ingestor/main.go --run-once
+
+ingestor-market-run: ## Run only market data ingestor with scheduler
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi && \
+	go run cmd/ingestor/main.go --only-market-data
+
+ingestor-market-once: ## Run only market data ingestor once and exit
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi && \
+	go run cmd/ingestor/main.go --only-market-data --run-once
+
+ingestor-stocks-run: ## Run only stocks ingestor with scheduler
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi && \
+	go run cmd/ingestor/main.go --only-stocks
+
+ingestor-stocks-once: ## Run only stocks ingestor once and exit
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi && \
+	go run cmd/ingestor/main.go --only-stocks --run-once
+
+ingestor-build: ## Build ingestor binary
+	cd api && \
+	if [ ! -f .env ]; then \
+		echo "❌ .env file not found"; \
+		exit 1; \
+	fi && \
+	mkdir -p bin && \
+	go build -o bin/ingestor cmd/ingestor/main.go
+
 ##@ API Testing
 api-test-auth: ## Test authentication endpoints specifically
 	cd api && \

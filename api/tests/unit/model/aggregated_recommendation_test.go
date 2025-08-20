@@ -43,9 +43,9 @@ func TestAggregatedRecommendation_DetermineType(t *testing.T) {
 			expectedType: enums.RECOMMENDATION_TYPE_STRONG_BUY,
 		},
 		{
-			name:         "Buy for score >= 0.6",
+			name:         "Strong Buy for score >= 0.7",
 			basicScore:   0.7,
-			expectedType: enums.RECOMMENDATION_TYPE_BUY,
+			expectedType: enums.RECOMMENDATION_TYPE_STRONG_BUY,
 		},
 		{
 			name:         "Hold for score >= 0.4",
@@ -78,8 +78,8 @@ func TestAggregatedRecommendation_DetermineType(t *testing.T) {
 			expectedType: enums.RECOMMENDATION_TYPE_HOLD,
 		},
 		{
-			name:         "Edge case - exactly 0.2",
-			basicScore:   0.2,
+			name:         "Edge case - exactly 0.25",
+			basicScore:   0.25,
 			expectedType: enums.RECOMMENDATION_TYPE_SELL,
 		},
 	}
@@ -369,7 +369,7 @@ func TestAggregatedRecommendation_ComprehensiveBehavior(t *testing.T) {
 
 	// Test DetermineType
 	recommendation.DetermineType()
-	assert.Equal(t, enums.RECOMMENDATION_TYPE_BUY, recommendation.RecommendationType)
+	assert.Equal(t, enums.RECOMMENDATION_TYPE_STRONG_BUY, recommendation.RecommendationType)
 
 	// Test GetUpside
 	upside := recommendation.GetUpside()

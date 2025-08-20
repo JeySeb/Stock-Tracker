@@ -113,6 +113,10 @@ func (uc *TieredRecommendationUseCase) GetRecommendations(
 	}
 
 	// 3. Generate fresh recommendations
+	uc.logger.Info("Generating fresh recommendations",
+		"tier", request.UserTier,
+		"limit", limit,
+		"filters", request.Filters)
 	recommendations, err := uc.generateFreshRecommendations(ctx, request.UserTier, limit, request.Filters)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate recommendations: %w", err)

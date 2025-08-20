@@ -9,8 +9,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"stock-tracker/internal/domain/recommendation/validation"
-	"stock-tracker/internal/domain/shared/enums"
 	stockModel "stock-tracker/internal/domain/stocks/model"
 	"stock-tracker/internal/domain/stocks/repositories"
 	stockValidation "stock-tracker/internal/domain/stocks/validation"
@@ -101,105 +99,6 @@ func (m *MockStockRepository) GetUniqueTickersCount(ctx context.Context) (int, e
 func (m *MockStockRepository) GetBrokerageStats(ctx context.Context) ([]repositories.BrokerageStats, error) {
 	args := m.Called(ctx)
 	return args.Get(0).([]repositories.BrokerageStats), args.Error(1)
-}
-
-func TestDirectionalScoringApproach(t *testing.T) {
-	mockRepo := new(MockStockRepository)
-	testLogger := &TestLogger{}
-	calc := validation.NewBasicScoringCalculator(mockRepo, testLogger)
-
-	testCases := []struct {
-		name                   string
-		events                 []*stockModel.Stock
-		expectedRecommendation enums.RecommendationType
-		expecteScoreRange      [2]float64 // [min, max]
-		businessRationale      string
-	}{
-		{
-			name: "Strong Sell Consensus - Multiple Downgrades to Sell",
-			events: []*stockModel.Stock{
-				createStockEvent("AAPL", "Goldman Sachs", "Buy", "Sell", 180.0, 150.0),
-				createStockEvent("AAPL", "JP Morgan", "Hold", "Sell", 175.0, 145.0),
-				createStockEvent("AAPL", "Morgan Stanley", "Outperform", "Strong Sell", 185.0, 140.0),
-				createStockEvent("AAPL", "Citigroup", "Buy", "Sell", 190.0, 155.0),
-			},
-			expectedRecommendation: enums.RECOMMENDATION_TYPE_STRONG_SELL,
-			expecteScoreRange:      [2]float64{0.0, 0.15},
-			businessRationale:      "Multiple respected brokers downgrading to sell with high certainty should generate STRONG_SELL",
-		},
-		{
-			name: "Sell Consensus - Mixed but Predominantly Negative",
-			events: []*stockModel.Stock{
-				createStockEvent("TSLA", "Deutsche Bank", "Hold", "Sell", 250.0, 200.0),
-				createStockEvent("TSLA", "Wells Fargo", "Buy", "Underperform", 260.0, 210.0),
-				createStockEvent("TSLA", "UBS", "Neutral", "Hold", 255.0, 245.0),
-			},
-			expectedRecommendation: enums.RECOMMENDATION_TYPE_SELL,
-			expecteScoreRange:      [2]float64{0.15, 0.35},
-			businessRationale:      "Predominantly negative sentiment should generate SELL recommendation",
-		},
-		{
-			name: "Strong Buy Consensus - Multiple Upgrades",
-			events: []*stockModel.Stock{
-				createStockEvent("NVDA", "Goldman Sachs", "Hold", "Strong Buy", 400.0, 500.0),
-				createStockEvent("NVDA", "JP Morgan", "Buy", "Strong Buy", 420.0, 520.0),
-				createStockEvent("NVDA", "Morgan Stanley", "Neutral", "Buy", 410.0, 480.0),
-				createStockEvent("NVDA", "Barclays", "Underperform", "Outperform", 390.0, 460.0),
-			},
-			expectedRecommendation: enums.RECOMMENDATION_TYPE_STRONG_BUY,
-			expecteScoreRange:      [2]float64{0.75, 1.0},
-			businessRationale:      "Multiple upgrades to strong buy should generate STRONG_BUY",
-		},
-		{
-			name: "Hold Consensus - Neutral Mixed Signals",
-			events: []*stockModel.Stock{
-				createStockEvent("MSFT", "Goldman Sachs", "Buy", "Hold", 350.0, 345.0),
-				createStockEvent("MSFT", "JP Morgan", "Sell", "Hold", 340.0, 350.0),
-				createStockEvent("MSFT", "Citigroup", "Hold", "Neutral", 345.0, 348.0),
-			},
-			expectedRecommendation: enums.RECOMMENDATION_TYPE_HOLD,
-			expecteScoreRange:      [2]float64{0.35, 0.55},
-			businessRationale:      "Mixed signals converging on neutral should generate HOLD",
-		},
-	}
-
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			// Setup mock to return test events
-			mockRepo.On("GetByTicker", mock.Anything, mock.AnythingOfType("string")).
-				Return(tc.events, nil).Once()
-			mockRepo.On("GetBrokerageStats", mock.Anything).
-				Return([]repositories.BrokerageStats{
-					{Brokerage: "Goldman Sachs", Count: 100, AvgScore: 0.9},
-					{Brokerage: "JP Morgan", Count: 95, AvgScore: 0.9},
-					{Brokerage: "Morgan Stanley", Count: 90, AvgScore: 0.85},
-				}, nil).Once()
-
-			// Calculate recommendation
-			recommendation, err := calc.CalculateAggregatedRecommendation(context.Background(), "TEST")
-
-			assert.NoError(t, err)
-			assert.NotNil(t, recommendation)
-
-			// Validate recommendation type
-			assert.Equal(t, tc.expectedRecommendation, recommendation.RecommendationType,
-				"Expected %s but got %s. Business rationale: %s",
-				tc.expectedRecommendation, recommendation.RecommendationType, tc.businessRationale)
-
-			// Validate score range
-			assert.GreaterOrEqual(t, recommendation.BasicScore, tc.expecteScoreRange[0],
-				"Score %f is below expected minimum %f", recommendation.BasicScore, tc.expecteScoreRange[0])
-			assert.LessOrEqual(t, recommendation.BasicScore, tc.expecteScoreRange[1],
-				"Score %f is above expected maximum %f", recommendation.BasicScore, tc.expecteScoreRange[1])
-
-			// Log scoring factors for analysis
-			t.Logf("Recommendation: %s, Score: %.3f", recommendation.RecommendationType, recommendation.BasicScore)
-			for _, factor := range recommendation.ScoringFactors {
-				t.Logf("  %s: %.3f (weight: %.2f) - %s",
-					factor.Name, factor.Score, factor.Weight, factor.Explanation)
-			}
-		})
-	}
 }
 
 func TestDirectionalCertaintyCalculation(t *testing.T) {

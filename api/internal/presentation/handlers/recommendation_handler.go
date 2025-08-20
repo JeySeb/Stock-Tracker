@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -67,7 +68,7 @@ func (h *RecommendationHandler) GetRecommendations(w http.ResponseWriter, r *htt
 
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, map[string]string{
-			"error": "Failed to retrieve recommendations",
+			"error": fmt.Sprintf("Failed to retrieve recommendations: %v", err),
 		})
 		return
 	}
@@ -138,7 +139,7 @@ func (h *RecommendationHandler) GetRecommendationByTicker(w http.ResponseWriter,
 
 		render.Status(r, http.StatusInternalServerError)
 		render.JSON(w, r, map[string]string{
-			"error": "Failed to retrieve recommendation",
+			"error": fmt.Sprintf("Failed to retrieve recommendation: %v", err),
 		})
 		return
 	}

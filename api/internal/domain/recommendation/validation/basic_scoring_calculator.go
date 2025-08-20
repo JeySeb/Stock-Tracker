@@ -63,7 +63,7 @@ type ConfidenceThresholds struct {
 func DefaultScoringConfig() *ScoringConfig {
 	return &ScoringConfig{
 		CacheTTL:          30 * time.Minute,
-		DataRetentionDays: 10,
+		DataRetentionDays: 60,
 		Weights: model.ScoringWeights{
 			BrokerFrequency:      0.15,
 			TargetMovement:       0.30,

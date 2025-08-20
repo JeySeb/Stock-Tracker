@@ -87,6 +87,18 @@ func (m *MockStockRepository) GetBrokerageStats(ctx context.Context) ([]stockRep
 	return args.Get(0).([]stockRepos.BrokerageStats), args.Error(1)
 }
 
+// Added to satisfy repositories.StockRepository interface
+func (m *MockStockRepository) GetUniqueTickers(ctx context.Context) ([]string, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]string), args.Error(1)
+}
+
+// Added to satisfy repositories.StockRepository interface
+func (m *MockStockRepository) GetUniqueCompanies(ctx context.Context) ([]string, error) {
+	args := m.Called(ctx)
+	return args.Get(0).([]string), args.Error(1)
+}
+
 // MockBrokerRepository implements stockRepos.BrokerRepository for testing
 type MockBrokerRepository struct {
 	mock.Mock
